@@ -23,11 +23,16 @@ The library inspirated by original ficlib by hunga-san.
 
 ## FiC FPGA programmer
 
-### fic_prog_sm16(GPIO *g, uint8_t *data, size_t size, int reset_mode)
+### fic_prog_sm16(GPIO *g, uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x16 mode 
+- PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
+- *tx is a size of transffered byte
+- return == -1 is error
 
-### fic_prog_sm8(GPIO *g, uint8_t *data, size_t size, int reset_mode)
+### fic_prog_sm8(GPIO *g, uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x8 mode 
+- PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
+- *tx is a size of transffered byte
 
 ### fic_prog_init(GPIO *g)
 - Invoke FPGA init

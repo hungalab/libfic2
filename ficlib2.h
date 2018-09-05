@@ -185,3 +185,47 @@ enum COMM_PORT_DIR {
 //-----------------------------------------------------------------------------
 // Prototypes
 //-----------------------------------------------------------------------------
+extern int inline fic_set_gpio(uint32_t set);
+extern int inline fic_clr_gpio(uint32_t set);
+
+extern void fic_comm_setup8();
+extern void fic_comm_setup4();
+
+extern void fic_comm_portdir8(enum COMM_PORT_DIR dir);
+extern void fic_comm_portdir4(enum COMM_PORT_DIR dir);
+
+extern int fic_comm_wait_fack_down();
+extern int fic_comm_wait_fack_up();
+extern int fic_comm_wait_freq_down();
+extern int fic_comm_wait_freq_up();
+
+extern int fic_comm_send8(uint32_t bus);
+extern int fic_comm_send4(uint32_t bus);
+extern uint8_t fic_comm_receive();
+
+extern int fic_comm_setaddr8(uint16_t addr);
+extern int fic_comm_setaddr4(uint16_t addr);
+
+extern int fic_wb8(uint16_t addr, uint8_t data);
+extern uint8_t fic_rb8(uint16_t addr);
+extern int fic_wb4(uint16_t addr, uint8_t data);
+extern uint8_t fic_rb4(uint16_t addr);
+extern int fic_hls_write4(uint8_t *data, size_t size);
+extern int fic_hls_read4(size_t size, uint8_t *buf);
+
+extern void fic_prog_init_sm16();
+extern void fic_prog_init_sm8();
+extern void fic_prog_init();
+extern int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx);
+extern int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx);
+
+extern int fic_hls_start8();
+extern int fic_hls_start4();
+extern int fic_hls_reset8();
+extern int fic_hls_reset4();
+
+extern int fic_gpio_open();
+extern int fic_gpio_close();
+
+extern int gpio_unlock();
+extern int gpio_lock();
