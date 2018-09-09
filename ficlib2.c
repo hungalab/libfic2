@@ -201,7 +201,7 @@ int fic_comm_wait_freq_up() {
 
 int fic_comm_send8(uint32_t bus) {
     // Clr RSTB and DATA bus
-    fic_clr_gpio_debug(RP_PIN_RSTB |
+    fic_clr_gpio(RP_PIN_RSTB |
         RP_PIN_DATA7 | RP_PIN_DATA6 | RP_PIN_DATA5 | RP_PIN_DATA4 |
         RP_PIN_DATA3 | RP_PIN_DATA2 | RP_PIN_DATA1 | RP_PIN_DATA0);
     fic_set_gpio(RP_PIN_RSTB | bus);
@@ -224,7 +224,7 @@ int fic_comm_send8(uint32_t bus) {
 
 int fic_comm_send4(uint32_t bus) {
     // Clr RSTB and DATA bus
-    fic_clr_gpio_debug(RP_PIN_RSTB |
+    fic_clr_gpio(RP_PIN_RSTB |
         RP_PIN_DATA7 | RP_PIN_DATA6 | RP_PIN_DATA5 | RP_PIN_DATA4);
     fic_set_gpio(RP_PIN_RSTB | bus);
 
@@ -344,7 +344,7 @@ int fic_wb8(uint16_t addr, uint8_t data) {
 //-----------------------------------------------------------------------------
 // Read a byte via 8bit interface
 //-----------------------------------------------------------------------------
-uint8_t fic_rb8(uint16_t addr) {
+int fic_rb8(uint16_t addr) {
     fic_comm_setup8();
     fic_comm_portdir8(COMM_PORT_SND);
 
@@ -505,7 +505,7 @@ int fic_wb4(uint16_t addr, uint8_t data) {
 //-----------------------------------------------------------------------------
 // Read a byte via 4bit interface
 //-----------------------------------------------------------------------------
-uint8_t fic_rb4(uint16_t addr) {
+int fic_rb4(uint16_t addr) {
     fic_comm_setup4();
     fic_comm_portdir4(COMM_PORT_SND);
 
@@ -545,7 +545,7 @@ uint8_t fic_rb4(uint16_t addr) {
 //-----------------------------------------------------------------------------
 // Transfer bytes via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_write4(uint8_t *data, size_t size) {
+int fic_hls_send4(uint8_t *data, size_t size) {
     fic_comm_setup4();
     fic_comm_portdir4(COMM_PORT_SND);
 
@@ -585,7 +585,7 @@ int fic_hls_write4(uint8_t *data, size_t size) {
 //-----------------------------------------------------------------------------
 // Receive bytes via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_read4(size_t size, uint8_t *buf) {
+int fic_hls_receive4(size_t size, uint8_t *buf) {
     fic_comm_setup4();
     fic_comm_portdir4(COMM_PORT_SND);
 
@@ -695,7 +695,8 @@ void fic_prog_init() {
 //-----------------------------------------------------------------------------
 // Selectmap x16 FPGA configuration 
 //-----------------------------------------------------------------------------
-int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
+size_t tx_bytes;
+size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     fic_prog_init_sm16();   // Set pinmode
 
@@ -716,9 +717,7 @@ int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
     size_t i;
 
     // Transffered byte if specified
-    if (tx != NULL) {
-        *tx = 0;
-    }
+    tx_bytes = 0;
 
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
@@ -727,10 +726,7 @@ int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
         fic_set_gpio(RP_PIN_CCLK);
 
 //        DEBUGOUT("DEBUG:%lx %x\n", i, GET_GPIO);
-
-        if (tx != NULL) {
-            *tx += 2;
-        }
+        tx_bytes += 2;
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
@@ -743,7 +739,6 @@ int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
     // Wait until RP_DONE asserted
     if (pm == PM_NORMAL) {
         DEBUGOUT("DEBUG: Waiting for RP_DONE\n");
-        return 0;
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             if (GET_GPIO_PIN(RP_INIT) == 0) {
                 fprintf(stderr,
@@ -759,17 +754,17 @@ int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
     }
 
     SET_ALL_INPUT;
-    return 0;
+    return tx_bytes;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
-    return -1;
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
 // Selectmap x8 FPGA configuration 
 //-----------------------------------------------------------------------------
-int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
+size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     fic_prog_init_sm8();   // Set pinmode
 
@@ -790,9 +785,7 @@ int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
     size_t i;
 
     // Transffered byte if specified
-    if (tx != NULL) {
-        *tx = 0;
-    }
+    tx_bytes = 0;
  
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
@@ -800,9 +793,7 @@ int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
         fic_set_gpio(d & 0x0000ff00);
         fic_set_gpio(RP_PIN_CCLK);
 
-        if (tx != NULL) {
-            *tx ++;
-        }
+        tx_bytes++;
  
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
@@ -829,12 +820,12 @@ int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx) {
         fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK);
     }
 
-//    SET_ALL_INPUT;
-    return 0;
+    SET_ALL_INPUT;
+    return tx_bytes;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
-    return -1;
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -1042,8 +1033,9 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-//    fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-    fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+//    fic_prog_sm16(buf, size, PM_NORMAL);
+    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL);
+    printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
     free(buf);
@@ -1074,9 +1066,9 @@ void test_rw_4bit() {
     uint8_t buf[8] = {0};
 
     printf("HLS module write at %x\n", addr);
-    fic_hls_write4(list, 1);
+    fic_hls_send4(list, 1);
     printf("HLS module read at %x\n", addr);
-    fic_hls_read4(1, buf);
+    fic_hls_receive4(1, buf);
 //    printf("DEBUG: read=%s\n", buf);
 
 }

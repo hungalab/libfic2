@@ -185,9 +185,6 @@ enum COMM_PORT_DIR {
 //-----------------------------------------------------------------------------
 // Prototypes
 //-----------------------------------------------------------------------------
-extern int inline fic_set_gpio(uint32_t set);
-extern int inline fic_clr_gpio(uint32_t set);
-
 extern void fic_comm_setup8();
 extern void fic_comm_setup4();
 
@@ -207,17 +204,19 @@ extern int fic_comm_setaddr8(uint16_t addr);
 extern int fic_comm_setaddr4(uint16_t addr);
 
 extern int fic_wb8(uint16_t addr, uint8_t data);
-extern uint8_t fic_rb8(uint16_t addr);
+extern int fic_rb8(uint16_t addr);
 extern int fic_wb4(uint16_t addr, uint8_t data);
-extern uint8_t fic_rb4(uint16_t addr);
-extern int fic_hls_write4(uint8_t *data, size_t size);
-extern int fic_hls_read4(size_t size, uint8_t *buf);
+extern int fic_rb4(uint16_t addr);
+extern int fic_hls_send4(uint8_t *data, size_t size);
+extern int fic_hls_receive4(size_t size, uint8_t *buf);
 
 extern void fic_prog_init_sm16();
 extern void fic_prog_init_sm8();
 extern void fic_prog_init();
-extern int fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx);
-extern int fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx);
+
+extern size_t tx_bytes; // Transfer bytes of FPGA programmer
+extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);
 
 extern int fic_hls_start8();
 extern int fic_hls_start4();

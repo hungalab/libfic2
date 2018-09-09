@@ -8,101 +8,206 @@
 //-----------------------------------------------------------------------------
 // Python wrapper
 //-----------------------------------------------------------------------------
-PyObject *py_fic_gpio_open(PyObject *self, PyObject *args) {
-    fic_gpio_open();
+static PyObject *py_fic_gpio_open(PyObject *self, PyObject *args) {
+	if (fic_gpio_open() < 0) {
+		return NULL;
+	}
 	return Py_BuildValue("");
 }
 
-PyObject *py_fic_gpio_open(PyObject *self, PyObject *args) {
+static PyObject *py_fic_gpio_close(PyObject *self, PyObject *args) {
+	if(fic_gpio_close() < 0) {
+		return NULL;
+	}
+	return Py_BuildValue("");
 }
 
-PyObject *py_set_input(PyObject *self, PyObject *args) {
-	int g;
+//-----------------------------------------------------------------------------
+static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &g))
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
 		return NULL;
+	}
 
-	DEBUGOUT("SET INPUT %d\n", g);
-	INP_GPIO(g);
+	return Py_BuildValue("n", fic_prog_sm16(data.buf, data.len, pm));
+}
+
+static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
+
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		return NULL;
+	}
+
+	return Py_BuildValue("n", fic_prog_sm8(data.buf, data.len, pm));
+}
+
+static PyObject *py_fic_prog_init(PyObject *self, PyObject *args) {
+	fic_prog_init();
+	return Py_BuildValue("");
+}
+
+//-----------------------------------------------------------------------------
+static PyObject *py_fic_wb8(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint8_t data;
+	uint16_t addr;
+
+	static char *kwd[] = {"addr", "data", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hc", kwd, &addr, &data)) {
+		return NULL;
+	}
+
+	int ret;
+	if ((ret = fic_wb8(addr, data)) < 0) {
+		return NULL;
+	}
 
 	return Py_BuildValue("");
 }
 
-PyObject *py_set_output(PyObject *self, PyObject *args) {
-	int g;
+static PyObject *py_fic_rb8(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint16_t addr;
 
-	if (!PyArg_ParseTuple(args, "i", &g))
+	static char *kwd[] = {"addr", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &addr)) {
 		return NULL;
+	}
 
-	DEBUGOUT("SET OUTPUT %d\n", g);
-	INP_GPIO(g);
-	OUT_GPIO(g);
+	int ret;
+	if ((ret = fic_rb8(addr)) < 0) {
+		return NULL;
+	}
+
+	return Py_BuildValue("b", ret & 0xff);
+}
+
+static PyObject *py_fic_wb4(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint8_t data;
+	uint16_t addr;
+
+	static char *kwd[] = {"addr", "data", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hc", kwd, &addr, &data)) {
+		return NULL;
+	}
+
+	int ret;
+	if ((ret = fic_wb4(addr, data)) < 0) {
+		return NULL;
+	}
 
 	return Py_BuildValue("");
 }
 
-PyObject *py_bus_set(PyObject *self, PyObject *args) {
-	int v;
+static PyObject *py_fic_rb4(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint16_t addr;
 
-	if (!PyArg_ParseTuple(args, "i", &v))
+	static char *kwd[] = {"addr", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &addr)) {
 		return NULL;
+	}
 
-	DEBUGOUT("SET BUS OUT 0x%x\n", v);
-	GPIO_SET = v & 0x0fffffff;
+	int ret;
+	if ((ret = fic_rb4(addr)) < 0) {
+		return NULL;
+	}
+
+	return Py_BuildValue("b", ret & 0xff);
+}
+
+//-----------------------------------------------------------------------------
+static PyObject *py_fic_hls_reset8(PyObject *self, PyObject *args) {
+	fic_hls_reset8();
+	return Py_BuildValue("");
+}
+
+static PyObject *py_fic_hls_reset4(PyObject *self, PyObject *args) {
+	fic_hls_reset4();
+	return Py_BuildValue("");
+}
+
+static PyObject *py_fic_hls_start4(PyObject *self, PyObject *args) {
+	fic_hls_start4();
+	return Py_BuildValue("");
+}
+
+static PyObject *py_fic_hls_start8(PyObject *self, PyObject *args) {
+	fic_hls_start8();
+	return Py_BuildValue("");
+}
+
+static PyObject *py_fic_hls_send4(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+
+	static char *kwd[] = {"data", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*", kwd, &data)) {
+		return NULL;
+	}
+
+	int ret;
+	if ((ret = fic_hls_send4(data.buf, data.len)) < 0) {
+		return NULL;
+	}
 
 	return Py_BuildValue("");
 }
 
-PyObject *py_bus_clear(PyObject *self, PyObject *args) {
-	int v;
+static PyObject *py_fic_hls_receive4(PyObject *self, PyObject *args, PyObject *kwargs) {
+	size_t count;
 
-	if (!PyArg_ParseTuple(args, "i", &v))
+	static char *kwd[] = {"count", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &count)) {
 		return NULL;
+	}
 
-	DEBUGOUT("SET BUS CLEAR 0x%x\n", v);
-	GPIO_CLR = v & 0x0fffffff;
-
-	return Py_BuildValue("");
-}
-
-PyObject *py_get(PyObject *self, PyObject *args) {
-	int g, v;
-
-	if (!PyArg_ParseTuple(args, "i", &g))
+	uint8_t *buf = (uint8_t*) PyObject_Malloc(sizeof(uint8_t)*count);
+	if (!buf) {
 		return NULL;
+	}
 
-	v = GET_GPIO(g);
+	int ret;
+	if ((ret = fic_hls_receive4(count, buf)) < 0) {
+		return NULL;
+	}
 
-	return Py_BuildValue("i", (v ? 1 : 0));
+	PyObject *array = PyByteArray_FromStringAndSize(buf, count);
+	return array;
 }
-
-PyObject *py_get_bus(PyObject *self, PyObject *args) {
-	return Py_BuildValue("i", GET_GPIO_BUS & 0x0fffffff);
-}
-
+//-----------------------------------------------------------------------------
 // Methods
-static PyMethodDef rawgpiomodule_methods[] = {
-	{ "setup",	py_setup_io,	METH_NOARGS },
-	{ "set_input",	py_set_input,	METH_VARARGS },
-	{ "set_output",	py_set_output,	METH_VARARGS },
-	{ "bus_set",	py_bus_set,	METH_VARARGS },
-	{ "bus_clear",	py_bus_clear,	METH_VARARGS },
-	{ "get",	py_get,		METH_VARARGS },
-	{ "get_bus",	py_get_bus,	METH_NOARGS },
-	{ NULL },
+//-----------------------------------------------------------------------------
+static PyMethodDef pyficlib2_methods[] = {
+	{ "gpio_open",	py_fic_gpio_open, METH_NOARGS, "Open GPIO and create LOCK_FILE"},
+	{ "gpio_close",	py_fic_gpio_close, METH_NOARGS, "Close GPIO and delete LOCK_FILE"},
+	{ "prog_sm16", (PyCFunction) py_fic_prog_sm16, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method"},
+	{ "prog_sm8", (PyCFunction) py_fic_prog_sm8, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method"},
+	{ "prog_init", (PyCFunction) py_fic_prog_init, METH_NOARGS, "Reset FPGA"},
+	{ "rb8", (PyCFunction) py_fic_rb8, METH_VARARGS|METH_KEYWORDS, "Read byte with 8bit I/F"},
+	{ "rb4", (PyCFunction) py_fic_rb4, METH_VARARGS|METH_KEYWORDS, "Read byte with 4bit I/F"},
+	{ "wb8", (PyCFunction) py_fic_wb8, METH_VARARGS|METH_KEYWORDS, "Write byte with 8bit I/F"},
+	{ "wb4", (PyCFunction) py_fic_wb4, METH_VARARGS|METH_KEYWORDS, "Write byte with 4bit I/F"},
+	{ "hls_reset4", (PyCFunction) py_fic_hls_reset4, METH_NOARGS, "Reset HLS module (4bit I/F)"},
+	{ "hls_reset8", (PyCFunction) py_fic_hls_reset8, METH_NOARGS, "Reset HLS module (4bit I/F)"},
+	{ "hls_start4", (PyCFunction) py_fic_hls_start4, METH_NOARGS, "Start HLS module (4bit I/F)"},
+	{ "hls_start8", (PyCFunction) py_fic_hls_start8, METH_NOARGS, "Start HLS module (4bit I/F)"},
+	{ "hls_send4", (PyCFunction) py_fic_hls_send4, METH_VARARGS|METH_KEYWORDS, "Send data to HLS with 4bit I/F"},
+	{ "hls_receive4", (PyCFunction) py_fic_hls_receive4, METH_VARARGS|METH_KEYWORDS, "Receive data from HLS with 4bit I/F"},
+	{ NULL, NULL, 0, NULL },	// Sentinel
 };
 
 // Module defs
-static struct PyModuleDef rawrpigpio = {
+static struct PyModuleDef pyficlib2 = {
 	PyModuleDef_HEAD_INIT,	
-	"rawgpiomodule",	// name of module
+	"pyficlib2",// name of module
 	"",			// module documents
 	-1,
-	rawgpiomodule_methods,
+	pyficlib2_methods,
 };
 
-PyMODINIT_FUNC PyInit_rawrpigpio(void) {
-	return PyModule_Create(&rawrpigpio);
+PyMODINIT_FUNC PyInit_pyficlib2(void) {
+	return PyModule_Create(&pyficlib2);
 }
-*/
-

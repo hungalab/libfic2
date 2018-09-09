@@ -11,30 +11,31 @@ The library inspirated by original ficlib by hunga-san.
 
 ## General
 
-### GPIO *fic_gpio_open()
+### int fic_gpio_open()
 - Open GPIO and creates LOCKFILE
-- return == NULL is error
+- return -1 is error
 
-### GPIO *fic_gpio_close()
+### int fic_gpio_close()
 - Close GPIO and removes LOCKFILE
-- return == NULL is error
+- return -1 is error
 
 ----
 
 ## FiC FPGA programmer
 
-### fic_prog_sm16(GPIO *g, uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
+### size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x16 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
-- *tx is a size of transffered byte
-- return == -1 is error
+- Progress can observe by tx_bytes (global variable)
+- return == 0 is error
 
-### fic_prog_sm8(GPIO *g, uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
+### size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x8 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
-- *tx is a size of transffered byte
+- Progress can observe by tx_bytes (global variable)
+- return == 0 is error
 
-### fic_prog_init(GPIO *g)
+### void fic_prog_init()
 - Invoke FPGA init
 
 ----
@@ -42,21 +43,21 @@ The library inspirated by original ficlib by hunga-san.
 ## FiC General Read Write I/F
 Note: The interface available after FiCSW FPGA programmed.
 
-### int fic_wb8(uint16_t addr, uint8_t *data)
-- Write single byte *data via fic 8bit interface.
+### int fic_wb8(uint16_t addr, uint8_t data)
+- Write single byte data via fic 8bit interface.
 - return -1 is error.
 
-### int fic_rb8(uint16_t addr, uint8_t *buf)
+### int fic_rb8(uint16_t addr)
 - Read single byte from addr to *buf via fic 8bit interface.
-- return -1 and buf == NULL is error.
-
-### int fic_wb4(uint16_t addr, uint8_t *data)
-- Write single byte *data via fic 4bit interface.
 - return -1 is error.
 
-### int fic_rb4(uint16_t addr, uint8_t *buf)
+### int fic_wb4(uint16_t addr, uint8_t data)
+- Write single byte data via fic 4bit interface.
+- return -1 is error.
+
+### int fic_rb4(uint16_t addr)
 - Read single byte from addr to *buf via fic 8bit interface.
-- return -1 and buf == NULL is error.
+- return -1 is error.
 
 ----
 
@@ -74,12 +75,12 @@ Note: The interface available after FiCSW FPGA programmed.
 ### void fic_hls_start8()
 - Send reset HLS start command
 
-### int fic_hls_send4(uint8_t *data, size_t size)
+### int fic_hls_send4(uint8_t *data, size_t count)
 - Send size bytes of *data to the HLS module via 4bit interface
 - All data is masked with 0x0f (so that only lower 4bit is valid)
 - return -1 is error
 
-### int fic_hls_receive4(uint8_t *buf, size_t size)
+### int fic_hls_receive4(uint8_t *buf, size_t count)
 - Receive size bytes of *data from HLS module via 4bit interface
 - return -1 and buf == NULL is error.
 
