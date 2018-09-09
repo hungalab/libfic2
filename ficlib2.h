@@ -214,9 +214,8 @@ extern void fic_prog_init_sm16();
 extern void fic_prog_init_sm8();
 extern void fic_prog_init();
 
-extern size_t tx_bytes; // Transfer bytes of FPGA programmer
-extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);
-extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
+extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
 
 extern int fic_hls_start8();
 extern int fic_hls_start4();

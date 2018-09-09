@@ -695,8 +695,7 @@ void fic_prog_init() {
 //-----------------------------------------------------------------------------
 // Selectmap x16 FPGA configuration 
 //-----------------------------------------------------------------------------
-size_t tx_bytes;
-size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
+size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
 
     fic_prog_init_sm16();   // Set pinmode
 
@@ -717,7 +716,12 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     size_t i;
 
     // Transffered byte if specified
-    tx_bytes = 0;
+    if (tx_byte != NULL) {
+        *tx_byte = 0;
+    }
+
+    time_t t1, t2;
+    time(&t1);
 
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
@@ -726,7 +730,16 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
         fic_set_gpio(RP_PIN_CCLK);
 
 //        DEBUGOUT("DEBUG:%lx %x\n", i, GET_GPIO);
-        tx_bytes += 2;
+        if (tx_byte != NULL) {
+            *tx_byte += 2;
+        }
+
+        // Show progress
+        time(&t2);
+        if (t2 - t1 > 2) {
+            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            t1 = t2;
+        }
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
@@ -754,7 +767,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    return tx_bytes;
+    return i;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
@@ -764,7 +777,7 @@ PM_SM16_EXIT_ERROR:
 //-----------------------------------------------------------------------------
 // Selectmap x8 FPGA configuration 
 //-----------------------------------------------------------------------------
-size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
+size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
 
     fic_prog_init_sm8();   // Set pinmode
 
@@ -785,16 +798,30 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     size_t i;
 
     // Transffered byte if specified
-    tx_bytes = 0;
+    if (tx_byte != NULL) {
+        tx_byte = 0;
+    }
  
+    time_t t1, t2;
+    time(&t1);
+
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
         fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK);
         fic_set_gpio(d & 0x0000ff00);
         fic_set_gpio(RP_PIN_CCLK);
 
-        tx_bytes++;
- 
+        if (tx_byte != NULL) {
+            tx_byte++;
+        }
+
+        // Show progress
+        time(&t2);
+        if (t2 - t1 > 2) {
+            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            t1 = t2;
+        }
+
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
                     "ERROR: FPGA configuration failed at %s %s %d\n",
@@ -821,7 +848,7 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    return tx_bytes;
+    return i;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
@@ -1033,8 +1060,8 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-//    fic_prog_sm16(buf, size, PM_NORMAL);
-    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL);
+//    fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);

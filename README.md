@@ -26,13 +26,13 @@ The library inspirated by original ficlib by hunga-san.
 ### size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x16 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
-- Progress can observe by tx_bytes (global variable)
+- Progress can observe by *tx
 - return == 0 is error
 
 ### size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x8 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
-- Progress can observe by tx_bytes (global variable)
+- Progress can observe by *tx
 - return == 0 is error
 
 ### void fic_prog_init()
@@ -86,6 +86,99 @@ Note: The interface available after FiCSW FPGA programmed.
 
 ----
 
+# Python bindings
+pyficlib2 is a python bindings of ficlib2.
+
+## Usage
+Import pyficlib like below
+
+```
+import pyficlib2 as fic
+...
+fic.gpio_open()
+
+-- do something --
+
+fic.gpio_close()
+
+```
+
+----
+## Methods
+
+### gpio_open()
+- Wrap function of fic_gpio_open()
+
+### gpio_close()
+- Wrap function of fic_gpio_close()
+
+### prog_sm16(data=_bytes_, progmode=_int_)
+- Wrap funcion of fic_prog_sm16
+- progmode = 0 is Normal FPGA prog mode
+- progmode = 1 is Normal PR FPGA prog mode
+- return is transfered bytes
+
+### prog_sm8(data=_bytes_, progmode=_int_)
+- Wrap funcion of fic_prog_sm8
+- progmode = 0 is Normal FPGA prog mode
+- progmode = 1 is Normal PR FPGA prog mode
+- return is transfered bytes
+
+### prog_tx()
+- Get trasnfered byte while prog_sm16 or prog_sm8
+
+### prog_init()
+- Wrap function of fic_prog_init
+- Init FPGA and erase configuration
+
+### rb8(addr=_int_)
+- Wrap function of fic_rb8
+- addr is single 16bit address
+- return is single _bytes_ at addr
+
+### rb4(addr=_int_, data=_bytes_)
+- Wrap function of fic_rb4
+- addr is 16bit address value
+- return is single _bytes_ at addr
+
+### wb8(addr=_int_, data=_bytes_)
+- Wrap function of fic_wb8
+- addr is 16bit address value
+- data is _bytes_ value
+
+### wb4(addr=_int_, data=_bytes_)
+- Wrap function of fic_wb4
+- addr is 16bit address value
+- data is _bytes_ value
+
+### hls_reset8()
+- Wrap function of fic_hls_reset8
+- Send HLS reset CMD via 8bit I/F
+
+### hls_reset4()
+- Wrap function of fic_hls_reset4
+- Send HLS reset CMD via 4bit I/F
+
+### hls_start8()
+- Wrap function of fic_hls_start8
+- Send HLS start CMD via 8bit I/F
+
+### hls_start4()
+- Wrap function of fic_hls_start4
+- Send HLS start CMD via 4bit I/F
+
+### hls_send4(data=_bytes_)
+- Wrap function of fic_hls_send4
+- data is python _bytes_
+- __NOT WELL TESTED__
+
+### hls_receive4(count=_int_)
+- Wrap function of fic_hls_receive4
+- Read _count_ of data from HLS module 
+- Return is _bytes_
+- __NOT WELL TESTED__
+
+----
 # FAQ
 
 ## What is the lockfile?

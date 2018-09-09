@@ -1,25 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+#------------------------------------------------------------------------------
+# pyficlib2 test
+# by nyacom (C) 2018
+#------------------------------------------------------------------------------
+
 import sys, traceback
 import os
 import struct
 import argparse
 import time
+from multiprocessing import Process
 import pyficlib2 as fic 
 #import numba
 #------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# EXAMPLE 1 : Program FPGA
+#------------------------------------------------------------------------------
 fic.gpio_open()
 
-#bit = open("ring_8bit.bin", "rb").read()
-#print("DEBUG: size=", len(bit))
-#tx = fic.prog_sm16(bit, 0)
-#print("DEBUG: tx=", tx)
+print("EXAMPLE1: Program FPGA")
+bit = open("ring_8bit.bin", "rb").read()
 
-fic.wb8(0xffff, b'A')
-print(fic.rb8(0xffff))
+print("DEBUG: bitfile size=", len(bit))
+fic.prog_sm16(bit, 0)
 
 fic.gpio_close()
+
+#------------------------------------------------------------------------------
+#fic.wb8(0xffff, b'A')
+#print(fic.rb8(0xffff))
+
 ##------------------------------------------------------------------------------
 #if __name__ == '__main__':
 #    obj = gpiotest()
