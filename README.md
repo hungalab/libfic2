@@ -124,8 +124,8 @@ fic.gpio_close()
 - progmode = 1 is Normal PR FPGA prog mode
 - return is transfered bytes
 
-### prog_tx()
-- Get trasnfered byte while prog_sm16 or prog_sm8
+### ~~prog_tx()~~
+- ~~Get trasnfered byte while prog_sm16 or prog_sm8~~
 
 ### prog_init()
 - Wrap function of fic_prog_init

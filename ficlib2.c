@@ -75,7 +75,7 @@ void fic_comm_busdebug(int line) {
 }
 
 //-----------------------------------------------------------------------------
-void fic_comm_setup8() {
+int fic_comm_setup8() {
     int i;
     SET_ALL_INPUT;
 
@@ -88,12 +88,16 @@ void fic_comm_setup8() {
         || i == RP_DATA4 || i == RP_DATA5 || i == RP_DATA6 || i == RP_DATA7 ) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_clr_gpio(0x01 << i);  // Negate
+            if (fic_clr_gpio(0x01 << i) < 0) { // Negate
+                return -1;
+            }
         }
     }
+
+    return 0;
 }
 
-void fic_comm_setup4() {
+int fic_comm_setup4() {
     int i;
     SET_ALL_INPUT;
 
@@ -105,9 +109,13 @@ void fic_comm_setup4() {
         || i == RP_DATA4 || i == RP_DATA5 || i == RP_DATA6 || i == RP_DATA7 ) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_clr_gpio(0x01 << i);  // Negate
+            if (fic_clr_gpio(0x01 << i) < 0) { // Negate
+                return -1;
+            }
         }
     }
+
+    return 0;
 }
 
 void fic_comm_portdir8(enum COMM_PORT_DIR dir) {
@@ -201,17 +209,25 @@ int fic_comm_wait_freq_up() {
 
 int fic_comm_send8(uint32_t bus) {
     // Clr RSTB and DATA bus
-    fic_clr_gpio(RP_PIN_RSTB |
+    if (fic_clr_gpio(RP_PIN_RSTB |
         RP_PIN_DATA7 | RP_PIN_DATA6 | RP_PIN_DATA5 | RP_PIN_DATA4 |
-        RP_PIN_DATA3 | RP_PIN_DATA2 | RP_PIN_DATA1 | RP_PIN_DATA0);
-    fic_set_gpio(RP_PIN_RSTB | bus);
+        RP_PIN_DATA3 | RP_PIN_DATA2 | RP_PIN_DATA1 | RP_PIN_DATA0) < 0) {
+            return -1;
+        }
+
+    if (fic_set_gpio(RP_PIN_RSTB | bus) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_up() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_up failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
-    fic_clr_gpio(RP_PIN_RSTB);
+
+    if (fic_clr_gpio(RP_PIN_RSTB) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_down() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_down failed at %s %s %d\n",
@@ -224,16 +240,24 @@ int fic_comm_send8(uint32_t bus) {
 
 int fic_comm_send4(uint32_t bus) {
     // Clr RSTB and DATA bus
-    fic_clr_gpio(RP_PIN_RSTB |
-        RP_PIN_DATA7 | RP_PIN_DATA6 | RP_PIN_DATA5 | RP_PIN_DATA4);
-    fic_set_gpio(RP_PIN_RSTB | bus);
+    if (fic_clr_gpio(RP_PIN_RSTB |
+        RP_PIN_DATA7 | RP_PIN_DATA6 | RP_PIN_DATA5 | RP_PIN_DATA4) < 0) {
+            return -1;
+        }
+
+    if (fic_set_gpio(RP_PIN_RSTB | bus) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_up() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_up failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
-    fic_clr_gpio(RP_PIN_RSTB);
+
+    if (fic_clr_gpio(RP_PIN_RSTB) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_down() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_down failed at %s %s %d\n",
@@ -244,9 +268,14 @@ int fic_comm_send4(uint32_t bus) {
     return 0;
 }
 
-uint8_t fic_comm_receive() {
-    fic_clr_gpio(RP_PIN_RSTB);
-    fic_set_gpio(RP_PIN_RSTB);
+//uint8_t fic_comm_receive() {
+int fic_comm_receive() {
+    if (fic_clr_gpio(RP_PIN_RSTB) < 0) {
+        return -1;
+    }
+    if (fic_set_gpio(RP_PIN_RSTB) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_up() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_up failed at %s %s %d\n",
@@ -257,7 +286,9 @@ uint8_t fic_comm_receive() {
     uint8_t rcv = 0;
     rcv = (GET_GPIO >> RP_DATA0) & 0xff;
 
-    fic_clr_gpio(RP_PIN_RSTB);
+    if (fic_clr_gpio(RP_PIN_RSTB) < 0) {
+        return -1;
+    }
 
     if (fic_comm_wait_fack_down() < 0) {
         fprintf(stderr, "ERROR: fic_comm_wait_fack_down failed at %s %s %d\n",
@@ -308,11 +339,15 @@ int fic_comm_setaddr4(uint16_t addr) {
 // Write a byte via 8bit interface
 //-----------------------------------------------------------------------------
 int fic_wb8(uint16_t addr, uint8_t data) {
-    fic_comm_setup8();
+    if (fic_comm_setup8() < 0) {
+        return -1;
+    }
     fic_comm_portdir8(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
 //    if (fic_comm_wait_freq_up() < 0) {
 //        return -1;
 //    }
@@ -323,7 +358,9 @@ int fic_wb8(uint16_t addr, uint8_t data) {
     }
 
     // Set address
-    fic_comm_setaddr8(addr);
+    if (fic_comm_setaddr8(addr) < 0) {
+        return -1;
+    }
 
     // Send 8bit data
     if (fic_comm_send8(data << RP_DATA0) < 0) {
@@ -331,7 +368,10 @@ int fic_wb8(uint16_t addr, uint8_t data) {
     }
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK);
+    if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) {
+        return -1;
+    }
+
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
@@ -345,11 +385,15 @@ int fic_wb8(uint16_t addr, uint8_t data) {
 // Read a byte via 8bit interface
 //-----------------------------------------------------------------------------
 int fic_rb8(uint16_t addr) {
-    fic_comm_setup8();
+    if (fic_comm_setup8() < 0) {
+        return -1;
+    }
     fic_comm_portdir8(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
 //    if (fic_comm_wait_freq_up() < 0) {
 //        return -1;
 //    }
@@ -360,24 +404,32 @@ int fic_rb8(uint16_t addr) {
     }
 
     // Set address
-    fic_comm_setaddr8(addr);
+    if (fic_comm_setaddr8(addr) < 0) {
+        return -1;
+    }
 
     // Change port direction
     fic_comm_portdir8(COMM_PORT_RCV);
 
     // Receive 8bit data
-    uint8_t rcv = 0;
-    rcv = fic_comm_receive();
+    //uint8_t rcv = 0;
+    int rcv = fic_comm_receive();
+    if (rcv < 0) {
+        return -1;
+    }
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
+
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
 
     SET_ALL_INPUT;
 
-    return rcv;
+    return (rcv & 0xff);
 }
 
 //-----------------------------------------------------------------------------
@@ -464,11 +516,15 @@ int fic_rb8(uint16_t addr) {
 // Write a byte via 4bit interface
 //-----------------------------------------------------------------------------
 int fic_wb4(uint16_t addr, uint8_t data) {
-    fic_comm_setup4();
+    if (fic_comm_setup4() < 0) {
+        return -1;
+    }
     fic_comm_portdir4(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
 //    if (fic_comm_wait_freq_up() < 0) {
 //        return -1;
 //    }
@@ -479,7 +535,9 @@ int fic_wb4(uint16_t addr, uint8_t data) {
     }
 
     // Set address
-    fic_comm_setaddr4(addr);
+    if (fic_comm_setaddr4(addr) < 0) {
+        return -1;
+    }
 
     // Send 4bit high data
     if (fic_comm_send4(((data & 0xf0) >> 4) << RP_DATA4) < 0) {
@@ -492,7 +550,9 @@ int fic_wb4(uint16_t addr, uint8_t data) {
     }
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK);
+    if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) {
+        return -1;
+    }
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
@@ -506,11 +566,15 @@ int fic_wb4(uint16_t addr, uint8_t data) {
 // Read a byte via 4bit interface
 //-----------------------------------------------------------------------------
 int fic_rb4(uint16_t addr) {
-    fic_comm_setup4();
+    if (fic_comm_setup4() < 0) {
+        return -1;
+    }
     fic_comm_portdir4(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
  //   if (fic_comm_wait_freq_up() < 0) {
  //       return -1;
  //   }
@@ -521,18 +585,30 @@ int fic_rb4(uint16_t addr) {
     }
 
     // Set address
-    fic_comm_setaddr4(addr);
+    if (fic_comm_setaddr4(addr) < 0) {
+        return -1;
+    }
 
     // Change port direction
     fic_comm_portdir4(COMM_PORT_RCV);
 
     // Receive 4bit high data
+    int i = 0;
     uint8_t rcv = 0;
-    rcv = fic_comm_receive() & 0xf0;
-    rcv |= (fic_comm_receive() >> 4) & 0x0f;
+    if (i = fic_comm_receive() < 0) {
+        return -1;
+    }
+    rcv = i & 0xf0;
+
+    if (i = fic_comm_receive() < 0) {
+        return -1;
+    }
+    rcv |= (i >> 4) & 0x0f;
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
@@ -546,11 +622,15 @@ int fic_rb4(uint16_t addr) {
 // Transfer bytes via 4bit interface
 //-----------------------------------------------------------------------------
 int fic_hls_send4(uint8_t *data, size_t size) {
-    fic_comm_setup4();
+    if (fic_comm_setup4() < 0) {
+        return -1;
+    }
     fic_comm_portdir4(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
 //    if (fic_comm_wait_freq_up() < 0) {
 //        return -1;
 //    }
@@ -561,7 +641,9 @@ int fic_hls_send4(uint8_t *data, size_t size) {
     }
 
     // Set address at HLS module entry point 0x1000
-    fic_comm_setaddr4(COMM_ADDR_HLS);
+    if (fic_comm_setaddr4(COMM_ADDR_HLS) < 0) {
+        return -1;
+    }
 
     size_t i;
     for (i = 0; i < size; i++) {
@@ -572,7 +654,9 @@ int fic_hls_send4(uint8_t *data, size_t size) {
     }
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK);
+    if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) {
+        return -1;
+    }
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
@@ -586,11 +670,15 @@ int fic_hls_send4(uint8_t *data, size_t size) {
 // Receive bytes via 4bit interface
 //-----------------------------------------------------------------------------
 int fic_hls_receive4(size_t size, uint8_t *buf) {
-    fic_comm_setup4();
+    if (fic_comm_setup4() < 0) {
+        return -1;
+    }
     fic_comm_portdir4(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
  //   if (fic_comm_wait_freq_up() < 0) {
  //       return -1;
  //   }
@@ -602,20 +690,27 @@ int fic_hls_receive4(size_t size, uint8_t *buf) {
     }
 
     // Set address
-    fic_comm_setaddr4(COMM_ADDR_HLS);
+    if (fic_comm_setaddr4(COMM_ADDR_HLS) < 0) {
+        return -1;
+    }
 
     // Change port direction
     fic_comm_portdir4(COMM_PORT_RCV);
 
     size_t i;
     for (i = 0; i < size; i++) {
-        uint8_t rcv = 0;
-        rcv = fic_comm_receive();
-        *(buf+i) = rcv;
+        //uint8_t rcv = 0;
+        int rcv = 0;
+        if (rcv = fic_comm_receive() < 0) {
+            return -1;
+        }
+        *(buf+i) = rcv & 0xff;
     }
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) {
+        return -1;
+    }
     if (fic_comm_wait_freq_down() < 0) {
         return -1;
     }
@@ -628,7 +723,7 @@ int fic_hls_receive4(size_t size, uint8_t *buf) {
 //-----------------------------------------------------------------------------
 // Selectmap x16 PIN init
 //-----------------------------------------------------------------------------
-void fic_prog_init_sm16() {
+int fic_prog_init_sm16() {
     int i;
     SET_ALL_INPUT;
 
@@ -639,7 +734,7 @@ void fic_prog_init_sm16() {
         if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_set_gpio(0x01 << i); // Disabled
+            if (fic_set_gpio(0x01 << i) < 0) return -1; // Disabled
         }
         if (i == RP_CCLK || i == RP_CD0 || i == RP_CD1 || i == RP_CD2 ||
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
@@ -648,15 +743,17 @@ void fic_prog_init_sm16() {
             i == RP_CD15) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_clr_gpio(0x01 << i); // Negate
+            if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
     }
+
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
 // Selectmap x8 PIN init
 //-----------------------------------------------------------------------------
-void fic_prog_init_sm8() {
+int fic_prog_init_sm8() {
     int i;
     SET_ALL_INPUT;
 
@@ -667,29 +764,33 @@ void fic_prog_init_sm8() {
         if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_set_gpio(0x01 << i); // Disabled
+            if (fic_set_gpio(0x01 << i) < 0) return -1; // Disabled
         }
         if (i == RP_CCLK || i == RP_CD0 || i == RP_CD1 || i == RP_CD2 ||
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
             i == RP_CD7) {
             SET_INPUT(i);
             SET_OUTPUT(i);
-            fic_clr_gpio(0x01 << i); // Negate
+            if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
     }
+
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
 // FPGA Init
 //-----------------------------------------------------------------------------
-void fic_prog_init() {
-    fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B);
-    fic_clr_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B);
-    fic_set_gpio(RP_PIN_PROG_B);
+int fic_prog_init() {
+    if (fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
+    if (fic_clr_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
+    if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
 
     while (GET_GPIO_PIN(RP_INIT) == 0) {
         usleep(1);
     }
+
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -697,7 +798,9 @@ void fic_prog_init() {
 //-----------------------------------------------------------------------------
 size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
 
-    fic_prog_init_sm16();   // Set pinmode
+    if (fic_prog_init_sm16() < 0) { // Set pinmode
+        goto PM_SM16_EXIT_ERROR;
+    } 
 
     // Reset FPGA
     if (pm == PM_NORMAL) {
@@ -706,13 +809,19 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
 
     } else if (pm == PM_PR) {
         // PR mode -> without init
-        fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B);
-        fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B);
+        if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) {
+            goto PM_SM16_EXIT_ERROR;
+        }
+        if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) {
+            goto PM_SM16_EXIT_ERROR;
+        }
 
     }
 
     // Configure FPGA
-    fic_clr_gpio(RP_PIN_CCLK);
+    if (fic_clr_gpio(RP_PIN_CCLK) < 0) {
+        goto PM_SM16_EXIT_ERROR;
+    }
     size_t i;
 
     // Transffered byte if specified
@@ -725,9 +834,15 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
 
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
-        fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK);
-        fic_set_gpio(d & 0x00ffff00);
-        fic_set_gpio(RP_PIN_CCLK);
+        if (fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK) < 0) {
+             goto PM_SM16_EXIT_ERROR;
+        }
+        if (fic_set_gpio(d & 0x00ffff00) < 0) {
+             goto PM_SM16_EXIT_ERROR;
+        }
+        if (fic_set_gpio(RP_PIN_CCLK) < 0) {
+            goto PM_SM16_EXIT_ERROR;
+        }
 
 //        DEBUGOUT("DEBUG:%lx %x\n", i, GET_GPIO);
         if (tx_byte != NULL) {
@@ -759,11 +874,17 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
                         __FILE__, __FUNCTION__, __LINE__);
                 goto PM_SM16_EXIT_ERROR;
             }
-            fic_set_gpio(RP_PIN_CCLK);
-            fic_clr_gpio(RP_PIN_CCLK);
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) {
+                goto PM_SM16_EXIT_ERROR;
+            }
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) {
+                goto PM_SM16_EXIT_ERROR;
+            }
         }
         DEBUGOUT("DEBUG: RP_DONE\n");
-        fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK);
+        if (fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK) < 0) {
+            goto PM_SM16_EXIT_ERROR;
+        }
     }
 
     SET_ALL_INPUT;
@@ -779,22 +900,21 @@ PM_SM16_EXIT_ERROR:
 //-----------------------------------------------------------------------------
 size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
 
-    fic_prog_init_sm8();   // Set pinmode
+    if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
 
     // Reset FPGA
     if (pm == PM_NORMAL) {
         // Normal mode -> Normal init
-        fic_prog_init();
+        if (fic_prog_init() < 0) goto PM_SM8_EXIT_ERROR;
 
     } else if (pm == PM_PR) {
         // PR mode -> without init
-        fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B);
-        fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B);
-
+        if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
+        if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
     }
 
     // Configure FPGA
-    fic_clr_gpio(RP_PIN_CCLK);
+    if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     size_t i;
 
     // Transffered byte if specified
@@ -807,9 +927,9 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
 
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
-        fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK);
-        fic_set_gpio(d & 0x0000ff00);
-        fic_set_gpio(RP_PIN_CCLK);
+        if (fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+        if (fic_set_gpio(d & 0x0000ff00) < 0) goto PM_SM8_EXIT_ERROR;
+        if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
 
         if (tx_byte != NULL) {
             tx_byte++;
@@ -840,11 +960,11 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
                         __FILE__, __FUNCTION__, __LINE__);
                 goto PM_SM8_EXIT_ERROR;
             }
-            fic_set_gpio(RP_PIN_CCLK);
-            fic_clr_gpio(RP_PIN_CCLK);
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
         }
         DEBUGOUT("DEBUG: RP_DONE\n");
-        fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK);
+        if (fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     }
 
     SET_ALL_INPUT;
@@ -857,22 +977,19 @@ PM_SM8_EXIT_ERROR:
 
 //-----------------------------------------------------------------------------
 int fic_hls_start8() {
-    fic_comm_setup8();
+    if (fic_comm_setup8() < 0) return -1;
     fic_comm_portdir8(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
     // Send command
-    if (fic_comm_send8(COMM_CMD_HLS_START << RP_DATA0) < 0) {
-        return -1;
-    }
+    if (fic_comm_send8(COMM_CMD_HLS_START << RP_DATA0) < 0) return -1;
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
-    if (fic_comm_wait_freq_down() < 0) {
-        return -1;
-    }
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+
+    if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
 
@@ -880,22 +997,19 @@ int fic_hls_start8() {
 }
 
 int fic_hls_start4() {
-    fic_comm_setup4();
+    if (fic_comm_setup4() < 0) return -1;
     fic_comm_portdir4(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
     // Send command
-    if (fic_comm_send4(COMM_CMD_HLS_START << RP_DATA4) < 0) {
-        return -1;
-    }
+    if (fic_comm_send4(COMM_CMD_HLS_START << RP_DATA4) < 0) return -1;
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
-    if (fic_comm_wait_freq_down() < 0) {
-        return -1;
-    }
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+
+    if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
 
@@ -903,22 +1017,19 @@ int fic_hls_start4() {
 }
 
 int fic_hls_reset8() {
-    fic_comm_setup8();
+    if (fic_comm_setup8() < 0) return -1;
     fic_comm_portdir8(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
     // Send command
-    if (fic_comm_send8(COMM_CMD_HLS_RESET << RP_DATA0) < 0) {
-        return -1;
-    }
+    if (fic_comm_send8(COMM_CMD_HLS_RESET << RP_DATA0) < 0) return -1;
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
-    if (fic_comm_wait_freq_down() < 0) {
-        return -1;
-    }
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+
+    if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
 
@@ -926,22 +1037,19 @@ int fic_hls_reset8() {
 }
 
 int fic_hls_reset4() {
-    fic_comm_setup8();
+    if (fic_comm_setup8() < 0) return -1;
     fic_comm_portdir8(COMM_PORT_SND);
 
     // RREQ assert
-    fic_set_gpio(RP_PIN_RREQ);
+    if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
     // Send command
-    if (fic_comm_send4(COMM_CMD_HLS_RESET << RP_DATA4) < 0) {
-        return -1;
-    }
+    if (fic_comm_send4(COMM_CMD_HLS_RESET << RP_DATA4) < 0) return -1;
 
     // RREQ dessert
-    fic_clr_gpio(RP_PIN_RREQ);
-    if (fic_comm_wait_freq_down() < 0) {
-        return -1;
-    }
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+
+    if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
 

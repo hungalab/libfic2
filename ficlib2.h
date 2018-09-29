@@ -185,8 +185,8 @@ enum COMM_PORT_DIR {
 //-----------------------------------------------------------------------------
 // Prototypes
 //-----------------------------------------------------------------------------
-extern void fic_comm_setup8();
-extern void fic_comm_setup4();
+extern int fic_comm_setup8();
+extern int fic_comm_setup4();
 
 extern void fic_comm_portdir8(enum COMM_PORT_DIR dir);
 extern void fic_comm_portdir4(enum COMM_PORT_DIR dir);
@@ -198,7 +198,7 @@ extern int fic_comm_wait_freq_up();
 
 extern int fic_comm_send8(uint32_t bus);
 extern int fic_comm_send4(uint32_t bus);
-extern uint8_t fic_comm_receive();
+extern int fic_comm_receive();
 
 extern int fic_comm_setaddr8(uint16_t addr);
 extern int fic_comm_setaddr4(uint16_t addr);
@@ -210,8 +210,8 @@ extern int fic_rb4(uint16_t addr);
 extern int fic_hls_send4(uint8_t *data, size_t size);
 extern int fic_hls_receive4(size_t size, uint8_t *buf);
 
-extern void fic_prog_init_sm16();
-extern void fic_prog_init_sm8();
+extern int fic_prog_init_sm16();
+extern int fic_prog_init_sm8();
 extern void fic_prog_init();
 
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
