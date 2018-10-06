@@ -175,6 +175,7 @@ enum COMM_PORT_DIR {
 #define __DEBUG__
 
 #ifdef __DEBUG__
+#define DEBUGTHRU printf("DEBUGTHRU: %s:%d\n", __FILE__, __LINE__)
 #define DEBUGOUT printf
 #define DEBUGCOMM fic_comm_busdebug(__LINE__)
 
@@ -212,7 +213,7 @@ extern int fic_hls_receive4(size_t size, uint8_t *buf);
 
 extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();
-extern void fic_prog_init();
+extern int fic_prog_init();
 
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
 extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
