@@ -19,6 +19,12 @@ The library inspirated by original ficlib by hunga-san.
 - Close GPIO and removes LOCKFILE
 - return -1 is error
 
+### int fic_power()
+- Probe PW_OK signal from FiC board
+
+### int fic_done()
+- Probe DONE singal from FPGA
+
 ----
 
 ## FiC FPGA programmer

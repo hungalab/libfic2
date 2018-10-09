@@ -77,6 +77,23 @@ void fic_comm_busdebug(int line) {
 }
 
 //-----------------------------------------------------------------------------
+int fic_done() {
+    SET_INPUT(RP_DONE);
+    if (GET_GPIO & RP_PIN_DONE) {
+        return 1;
+    }
+    return 0;
+}
+
+int fic_power() {
+    SET_INPUT(RP_PWOK);
+    if (GET_GPIO & RP_PIN_PWOK) {
+        return 1;
+    }
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
 int fic_comm_setup8() {
     int i;
     SET_ALL_INPUT;

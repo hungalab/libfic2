@@ -189,6 +189,9 @@ enum COMM_PORT_DIR {
 extern int fic_comm_setup8();
 extern int fic_comm_setup4();
 
+extern int fic_done();
+extern int fic_power();
+
 extern void fic_comm_portdir8(enum COMM_PORT_DIR dir);
 extern void fic_comm_portdir4(enum COMM_PORT_DIR dir);
 
