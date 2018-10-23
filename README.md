@@ -6,6 +6,76 @@ FiC library2 by nyacom <kzh@nyacom.net>
 The library inspirated by original ficlib by hunga-san.
 
 ----
+## Table of contents
+
+<!-- TOC -->
+
+- [FiC Library 2](#fic-library-2)
+    - [Table of contents](#table-of-contents)
+- [Build](#build)
+- [APIs](#apis)
+    - [General](#general)
+        - [int fic_gpio_open()](#int-fic_gpio_open)
+        - [int fic_gpio_close()](#int-fic_gpio_close)
+        - [int fic_power()](#int-fic_power)
+        - [int fic_done()](#int-fic_done)
+    - [FiC FPGA programmer](#fic-fpga-programmer)
+        - [size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)](#size_t-fic_prog_sm16uint8_t-data-size_t-size-enum-prog_mode-pm-size_t-tx)
+        - [size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)](#size_t-fic_prog_sm8uint8_t-data-size_t-size-enum-prog_mode-pm-size_t-tx)
+        - [void fic_prog_init()](#void-fic_prog_init)
+    - [FiC General Read Write I/F](#fic-general-read-write-if)
+        - [int fic_wb8(uint16_t addr, uint8_t data)](#int-fic_wb8uint16_t-addr-uint8_t-data)
+        - [int fic_rb8(uint16_t addr)](#int-fic_rb8uint16_t-addr)
+        - [int fic_wb4(uint16_t addr, uint8_t data)](#int-fic_wb4uint16_t-addr-uint8_t-data)
+        - [int fic_rb4(uint16_t addr)](#int-fic_rb4uint16_t-addr)
+    - [FiC HLS module communication](#fic-hls-module-communication)
+        - [void fic_hls_reset4()](#void-fic_hls_reset4)
+        - [void fic_hls_reset8()](#void-fic_hls_reset8)
+        - [void fic_hls_start4()](#void-fic_hls_start4)
+        - [void fic_hls_start8()](#void-fic_hls_start8)
+        - [int fic_hls_send4(uint8_t *data, size_t count)](#int-fic_hls_send4uint8_t-data-size_t-count)
+        - [int fic_hls_receive4(uint8_t *buf, size_t count)](#int-fic_hls_receive4uint8_t-buf-size_t-count)
+- [Python bindings](#python-bindings)
+    - [Usage](#usage)
+    - [Methods](#methods)
+        - [gpio_open()](#gpio_open)
+        - [gpio_close()](#gpio_close)
+        - [prog_sm16(data=_bytes_, progmode=_int_)](#prog_sm16data_bytes_-progmode_int_)
+        - [prog_sm8(data=_bytes_, progmode=_int_)](#prog_sm8data_bytes_-progmode_int_)
+        - [~~prog_tx()~~](#prog_tx)
+        - [prog_init()](#prog_init)
+        - [rb8(addr=_int_)](#rb8addr_int_)
+        - [rb4(addr=_int_, data=_bytes_)](#rb4addr_int_-data_bytes_)
+        - [wb8(addr=_int_, data=_bytes_)](#wb8addr_int_-data_bytes_)
+        - [wb4(addr=_int_, data=_bytes_)](#wb4addr_int_-data_bytes_)
+        - [hls_reset8()](#hls_reset8)
+        - [hls_reset4()](#hls_reset4)
+        - [hls_start8()](#hls_start8)
+        - [hls_start4()](#hls_start4)
+        - [hls_send4(data=_bytes_)](#hls_send4data_bytes_)
+        - [hls_receive4(count=_int_)](#hls_receive4count_int_)
+- [FAQ](#faq)
+    - [What is the lockfile?](#what-is-the-lockfile)
+
+<!-- /TOC -->
+
+----
+
+# Build
+
+To build ficlib2, you should do for preparation on your Raspbian.
+
+    sudo apt install gcc make python3-dev
+
+then make clean && make at ficlib2 directory.
+
+    make clean && make
+
+after compilation, you will get ficlib2 and pyficlib2.so
+
+pyficlib2.so is a python binding version of ficlib2. (please refer pyficlibtest.py for an example.)
+
+----
 
 # APIs
 
