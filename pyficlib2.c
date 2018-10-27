@@ -70,7 +70,7 @@ static PyObject *py_fic_wb8(PyObject *self, PyObject *args, PyObject *kwargs) {
 	uint16_t addr;
 
 	static char *kwd[] = {"addr", "data", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hc", kwd, &addr, &data)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hb", kwd, &addr, &data)) {
 		return NULL;
 	}
 
@@ -103,7 +103,7 @@ static PyObject *py_fic_wb4(PyObject *self, PyObject *args, PyObject *kwargs) {
 	uint16_t addr;
 
 	static char *kwd[] = {"addr", "data", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hc", kwd, &addr, &data)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Hb", kwd, &addr, &data)) {
 		return NULL;
 	}
 
