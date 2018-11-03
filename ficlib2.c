@@ -14,7 +14,6 @@ int inline fic_set_gpio(uint32_t set) {
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
-        sched_yield();
         //usleep(1);
     }
     return 0;
@@ -31,7 +30,6 @@ int inline fic_clr_gpio(uint32_t set) {
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
-        sched_yield();
         //usleep(1);
     }
     return 0;
