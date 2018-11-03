@@ -10,7 +10,6 @@
 #include <sys/file.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
-#include <sched.h>
 #include <unistd.h>
 #include <time.h>
 
