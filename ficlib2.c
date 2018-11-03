@@ -14,7 +14,8 @@ int inline fic_set_gpio(uint32_t set) {
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
-        usleep(1);
+        sched_yield();
+        //usleep(1);
     }
     return 0;
 }
@@ -30,17 +31,10 @@ int inline fic_clr_gpio(uint32_t set) {
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
-        usleep(1);
+        sched_yield();
+        //usleep(1);
     }
     return 0;
-}
-
-void inline fic_clr_gpio_debug(uint32_t set) {
-    CLR_GPIO = set;
-    while ((GET_GPIO & set) != 0) {
-        printf("DEBUG GPIO=%x SET=%x RESULT=%x\n", GET_GPIO, set, GET_GPIO & set);
-        usleep(1);
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -679,6 +673,18 @@ int fic_prog_init_sm8() {
 // FPGA Init
 //-----------------------------------------------------------------------------
 int fic_prog_init() {
+
+    // Pin setup for FPGA Init
+    SET_INPUT(RP_PROG_B); SET_OUTPUT(RP_PROG_B);
+    SET_INPUT(RP_CSI_B); SET_OUTPUT(RP_CSI_B);
+    SET_INPUT(RP_RDWR_B); SET_OUTPUT(RP_RDWR_B);
+
+    // Set disabled pins
+    if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
+    if (fic_set_gpio(RP_CSI_B) < 0) return -1;
+    if (fic_set_gpio(RP_RDWR_B) < 0) return -1;
+     
+    // Do FPGA init sequence
     if (fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
     if (fic_clr_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
     if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
