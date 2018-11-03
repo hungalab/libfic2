@@ -43,8 +43,8 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 		return NULL;
 	}
 
-	int ret = fic_prog_sm16(data.buf, data.len, pm, NULL);
-	return Py_BuildValue("n", ret);
+	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm, NULL);
+	return Py_BuildValue("I", ret);
 }
 
 static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -56,7 +56,8 @@ static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwarg
 		return NULL;
 	}
 
-	return Py_BuildValue("n", fic_prog_sm8(data.buf, data.len, pm, NULL));
+	uint32_t ret = fic_prog_sm8(data.buf, data.len, pm, NULL);
+	return Py_BuildValue("I", ret);
 }
 
 static PyObject *py_fic_prog_init(PyObject *self, PyObject *args) {

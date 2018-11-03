@@ -753,8 +753,10 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
     // Wait until RP_DONE asserted
     if (pm == PM_NORMAL) {
         DEBUGOUT("DEBUG: Waiting for RP_DONE\n");
+        time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
-            if (GET_GPIO_PIN(RP_INIT) == 0) {
+            time(&t2);
+            if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
                 fprintf(stderr,
                         "ERROR: FPGA configuration failed at %s %s %d\n",
                         __FILE__, __FUNCTION__, __LINE__);
@@ -832,8 +834,10 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
     // Waitng RP_DONE asserted
     if (pm == PM_NORMAL) {
         DEBUGOUT("DEBUG: Waiting for RP_DONE\n");
+        time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
-            if (GET_GPIO_PIN(RP_INIT) == 0) {
+            time(&t2);
+            if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
                 fprintf(stderr,
                         "ERROR: FPGA configuration failed at %s %s %d\n",
                         __FILE__, __FUNCTION__, __LINE__);
