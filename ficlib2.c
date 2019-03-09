@@ -617,7 +617,7 @@ int fic_prog_init_sm16() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
-        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
+        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE) {
             SET_INPUT(i);
         }
         if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B) {
@@ -629,12 +629,16 @@ int fic_prog_init_sm16() {
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
             i == RP_CD7 || i == RP_CD8 || i == RP_CD9 || i == RP_CD10 ||
             i == RP_CD11 || i == RP_CD12 || i == RP_CD13 || i == RP_CD14 ||
-            i == RP_CD15) {
+            i == RP_CD15 || i == RP_G_CKSEL) {
             SET_INPUT(i);
             SET_OUTPUT(i);
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
     }
+
+#ifdef FICMK2
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+#endif
 
     return 0;
 }
@@ -647,22 +651,26 @@ int fic_prog_init_sm8() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
-        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
+        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE ) {
             SET_INPUT(i);
         }
-        if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B) {
+        if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B ) {
             SET_INPUT(i);
             SET_OUTPUT(i);
             if (fic_set_gpio(0x01 << i) < 0) return -1; // Disabled
         }
         if (i == RP_CCLK || i == RP_CD0 || i == RP_CD1 || i == RP_CD2 ||
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
-            i == RP_CD7) {
+            i == RP_CD7 || i == RP_G_CKSEL) {
             SET_INPUT(i);
             SET_OUTPUT(i);
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
     }
+
+#ifdef FICMK2
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+#endif
 
     return 0;
 }
@@ -1038,7 +1046,9 @@ int fic_gpio_close() {
 //-----------------------------------------------------------------------------
 //#define BITFILE "ring_8bit.bin"
 //#define BITFILE "ring_4bit.bin"
-#define BITFILE "ring_akram.bin"
+//#define BITFILE "ring_akram.bin"
+//#define BITFILE "RPBT115.bin"
+#define BITFILE "AURORA.bin"
 
 void test_fpga_prog() {
     int fd;
@@ -1051,8 +1061,8 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+//    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
@@ -1126,7 +1136,7 @@ int main() {
 
     test_fpga_prog();
 //    test_rw_8bit();
-    test_rw_4bit();
+//    test_rw_4bit();
 
     fic_gpio_close();   // Close GPIO
 

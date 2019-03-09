@@ -22,7 +22,7 @@ import pyficlib2 as fic
 fic.gpio_open()
 
 print("EXAMPLE1: Program FPGA")
-bit = open("ring_8bit.bin", "rb").read()
+bit = open("AURORA.bin", "rb").read()
 
 print("DEBUG: bitfile size=", len(bit))
 fic.prog_sm16(bit, 0)

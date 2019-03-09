@@ -14,6 +14,12 @@
 #include <time.h>
 
 //-----------------------------------------------------------------------------
+// Board definition
+// Note: Uncomment if target board is FiC Mark2
+// #define FICMK2
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
 #define GPIO_LOCK_TIMEOUT (5)       // Lockfile timeout
 #define COMM_TIMEOUT (5)            // Communication timeout 
 
@@ -84,6 +90,7 @@ volatile unsigned *gpio;
 //-----------------------------------------------------------------------------
 #define RP_PWOK RP_CD16
 #define RP_G_CKSEL RP_CD17
+#define RP_CFSEL RP_CD17        // for mk2 board
 
 #define RP_RREQ RP_CD15
 #define RP_RSTB RP_CD14
@@ -133,6 +140,7 @@ volatile unsigned *gpio;
 //-----------------------------------------------------------------------------
 #define RP_PIN_PWOK RP_PIN_CD16
 #define RP_PIN_G_CKSEL RP_PIN_CD17
+#define RP_PIN_CFSEL RP_PIN_CD17        // for mk2 board
 
 #define RP_PIN_RREQ RP_PIN_CD15
 #define RP_PIN_RSTB RP_PIN_CD14

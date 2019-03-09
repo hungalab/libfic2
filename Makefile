@@ -2,12 +2,20 @@ BIN=ficlib2
 CC=gcc -O2 -g
 #CC=gcc -O0 -g
 
-all:
+mk1:
 	make $(BIN)
 	make pyficlib2.so
 
+mk2:
+	make $(BIN) CFLAGS=-DFICMK2
+	make pyficlib2.so
+
+# all:
+# 	make $(BIN)
+# 	make pyficlib2.so
+
 $(BIN):
-	$(CC) ficlib2.c -o $(BIN)
+	$(CC) $(CFLAGS) ficlib2.c -o $(BIN)
 
 run: $(BIN)
 	rm -rf /tmp/gpio.lock && ./$(BIN)
