@@ -1035,8 +1035,13 @@ int fic_gpio_open() {
 
 //-----------------------------------------------------------------------------
 int fic_gpio_close() {
-    munmap((void *)gpio, BLOCK_SIZE);
-    gpio_unlock();
+    if (munmap((void *)gpio, BLOCK_SIZE) < 0) {
+        return -1;
+    }
+
+    if (gpio_unlock() < 0) {
+        return -1;
+    }
 
     return 0;
 }
