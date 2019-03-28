@@ -194,6 +194,9 @@ enum COMM_PORT_DIR {
 //-----------------------------------------------------------------------------
 // Prototypes
 //-----------------------------------------------------------------------------
+// extern inline int fic_set_gpio(uint32_t set);
+// extern inline int fic_clr_gpio(uint32_t set);
+
 extern int fic_comm_setup8();
 extern int fic_comm_setup4();
 

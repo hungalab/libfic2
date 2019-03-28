@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // GPIO operation (with GPIO check)
 //-----------------------------------------------------------------------------
-int inline fic_set_gpio(uint32_t set) {
+static inline int fic_set_gpio(uint32_t set) {
     time_t t1, t2;
     time(&t1);
     SET_GPIO = set;
@@ -19,7 +19,7 @@ int inline fic_set_gpio(uint32_t set) {
     return 0;
 }
 
-int inline fic_clr_gpio(uint32_t set) {
+static inline int fic_clr_gpio(uint32_t set) {
     time_t t1, t2;
     time(&t1);
     CLR_GPIO = set;
@@ -617,7 +617,7 @@ int fic_prog_init_sm16() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
-        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE) {
+        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
             SET_INPUT(i);
         }
         if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B) {
@@ -629,7 +629,7 @@ int fic_prog_init_sm16() {
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
             i == RP_CD7 || i == RP_CD8 || i == RP_CD9 || i == RP_CD10 ||
             i == RP_CD11 || i == RP_CD12 || i == RP_CD13 || i == RP_CD14 ||
-            i == RP_CD15 || i == RP_G_CKSEL) {
+            i == RP_CD15) {
             SET_INPUT(i);
             SET_OUTPUT(i);
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
@@ -637,6 +637,7 @@ int fic_prog_init_sm16() {
     }
 
 #ifdef FICMK2
+    SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
 #endif
 
@@ -651,7 +652,7 @@ int fic_prog_init_sm8() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
-        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE ) {
+        if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
             SET_INPUT(i);
         }
         if (i == RP_PROG_B || i == RP_CSI_B || i == RP_RDWR_B ) {
@@ -661,7 +662,7 @@ int fic_prog_init_sm8() {
         }
         if (i == RP_CCLK || i == RP_CD0 || i == RP_CD1 || i == RP_CD2 ||
             i == RP_CD3 || i == RP_CD4 || i == RP_CD5 || i == RP_CD6 ||
-            i == RP_CD7 || i == RP_G_CKSEL) {
+            i == RP_CD7) {
             SET_INPUT(i);
             SET_OUTPUT(i);
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
@@ -669,6 +670,7 @@ int fic_prog_init_sm8() {
     }
 
 #ifdef FICMK2
+    SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
 #endif
 
@@ -830,6 +832,9 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
             printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
             t1 = t2;
         }
+
+//        usleep(1000);
+//        printf("GPIO=%08x\n", GET_GPIO);
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
@@ -1053,7 +1058,8 @@ int fic_gpio_close() {
 //#define BITFILE "ring_4bit.bin"
 //#define BITFILE "ring_akram.bin"
 //#define BITFILE "RPBT115.bin"
-#define BITFILE "AURORA.bin"
+//#define BITFILE "AURORA.bin"
+#define BITFILE "fic_top.bin"
 
 void test_fpga_prog() {
     int fd;
@@ -1066,8 +1072,8 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-//    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
