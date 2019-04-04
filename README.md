@@ -16,7 +16,7 @@ The library inspirated by original ficlib by hunga-san.
 - [APIs](#apis)
     - [General](#general)
         - [int fic_gpio_open()](#int-fic_gpio_open)
-        - [int fic_gpio_close()](#int-fic_gpio_close)
+        - [int fic_gpio_close(int fd_lock)](#int-fic_gpio_closeint-fd_lock)
         - [int fic_power()](#int-fic_power)
         - [int fic_done()](#int-fic_done)
     - [FiC FPGA programmer](#fic-fpga-programmer)
@@ -83,9 +83,10 @@ pyficlib2.so is a python binding version of ficlib2. (please refer pyficlibtest.
 
 ### int fic_gpio_open()
 - Open GPIO and creates LOCKFILE
+- return is LOCKFILE fd
 - return -1 is error
 
-### int fic_gpio_close()
+### int fic_gpio_close(int fd_lock)
 - Close GPIO and removes LOCKFILE
 - return -1 is error
 

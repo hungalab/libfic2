@@ -238,7 +238,7 @@ extern int fic_hls_reset8();
 extern int fic_hls_reset4();
 
 extern int fic_gpio_open();
-extern int fic_gpio_close();
+extern int fic_gpio_close(int fd_lock);
 
 extern int gpio_unlock();
 extern int gpio_lock();

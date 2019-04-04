@@ -9,14 +9,22 @@
 // Python wrapper
 //-----------------------------------------------------------------------------
 static PyObject *py_fic_gpio_open(PyObject *self, PyObject *args) {
-	if (fic_gpio_open() < 0) {
+	int fd_lock = 0;
+	fd_lock = fic_gpio_open();
+	if (fd_lock < 0) {
 		return NULL;
 	}
-	return Py_BuildValue("");
+	return Py_BuildValue("i", fd_lock);
 }
 
-static PyObject *py_fic_gpio_close(PyObject *self, PyObject *args) {
-	if(fic_gpio_close() < 0) {
+static PyObject *py_fic_gpio_close(PyObject *self, PyObject *args, PyObject *kwargs) {
+	int fd_lock;
+	static char *kwd[] = {"fd_lock", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i", kwd, &fd_lock)) {
+		return NULL;
+	}
+
+	if(fic_gpio_close(fd_lock) < 0) {
 		return NULL;
 	}
 	return Py_BuildValue("");
@@ -195,7 +203,7 @@ static PyObject *py_fic_hls_receive4(PyObject *self, PyObject *args, PyObject *k
 //-----------------------------------------------------------------------------
 static PyMethodDef pyficlib2_methods[] = {
 	{ "gpio_open",	py_fic_gpio_open, METH_NOARGS, "Open GPIO and create LOCK_FILE"},
-	{ "gpio_close",	py_fic_gpio_close, METH_NOARGS, "Close GPIO and delete LOCK_FILE"},
+	{ "gpio_close",	(PyCFunction) py_fic_gpio_close, METH_VARARGS|METH_KEYWORDS, "Close GPIO and delete LOCK_FILE"},
 	{ "get_done",	py_fic_done, METH_NOARGS, "Probe DONE singal from FPGA"},
 	{ "get_power",	py_fic_power, METH_NOARGS, "Probe PW_OK singal from FiC board"},
 	{ "prog_sm16", (PyCFunction) py_fic_prog_sm16, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method"},

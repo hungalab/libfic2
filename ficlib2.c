@@ -971,8 +971,8 @@ int gpio_lock() {
     }
 
     // Create LOCKFILE
-    int lock_fd = 0;
-    if (lock_fd = open(LOCK_FILE, O_CREAT|O_RDONLY, 0666) < 0) {
+    int lock_fd = open(LOCK_FILE, O_CREAT|O_RDONLY, 0666);
+    if (lock_fd < 0) {
 		fprintf(stderr, "ERROR: Cant create LOCK_FILE\n");
         return -1;
     }
@@ -983,14 +983,15 @@ int gpio_lock() {
         return -1;
     }
 
-    return 0;
+    return lock_fd;
 }
 
 //-----------------------------------------------------------------------------
 // Delete LOCKFILE
 //-----------------------------------------------------------------------------
-int gpio_unlock() {
-    if (unlink(LOCK_FILE) < 0 ) {
+int gpio_unlock(int fd_lock) {
+    close(fd_lock);                 // Close lockfile fd
+    if (unlink(LOCK_FILE) < 0 ) {   // Delete lockfile
 		fprintf(stderr, "ERROR: Cant remove LOCK_FILE\n");
         return -1;
     }
@@ -1002,14 +1003,15 @@ int gpio_unlock() {
 // Set up a memory regions to access GPIO
 //-----------------------------------------------------------------------------
 int fic_gpio_open() {
-    if (gpio_lock() < 0) {
+    int fd_lock = gpio_lock();
+    if (fd_lock < 0) {
 		fprintf(stderr, "ERROR: GPIO open failed\n");
         return -1;
     }
 
 	/* open GPIO_DEV */
-    int mem_fd = 0;
-	if ((mem_fd = open(GPIO_DEV, O_RDWR|O_SYNC) ) < 0) {
+    int mem_fd = open(GPIO_DEV, O_RDWR|O_SYNC);
+	if (mem_fd < 0) {
 		fprintf(stderr, "ERROR: can't open %s \n", GPIO_DEV);
         return -1;
 	}
@@ -1035,16 +1037,16 @@ int fic_gpio_open() {
 	// Always use volatile pointer!
 	gpio = (volatile unsigned *)gpio_map;
 
-    return 0;
+    return fd_lock;
 } 
 
 //-----------------------------------------------------------------------------
-int fic_gpio_close() {
+int fic_gpio_close(int fd_lock) {
     if (munmap((void *)gpio, BLOCK_SIZE) < 0) {
         return -1;
     }
 
-    if (gpio_unlock() < 0) {
+    if (gpio_unlock(fd_lock) < 0) {
         return -1;
     }
 
@@ -1143,12 +1145,13 @@ void test_rw_8bit() {
 //-----------------------------------------------------------------------------
 
 int main() {
-    fic_gpio_open();    // Open GPIO
+    int fd = fic_gpio_open();    // Open GPIO
+    printf("DEBUG: gpio fd %d \n", fd);
 
     test_fpga_prog();
 //    test_rw_8bit();
 //    test_rw_4bit();
 
-    fic_gpio_close();   // Close GPIO
+    fic_gpio_close(fd);   // Close GPIO
 
 }
