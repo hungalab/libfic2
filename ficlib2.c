@@ -639,6 +639,7 @@ int fic_prog_init_sm16() {
 #ifdef FICMK2
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
 #endif
 
     return 0;
@@ -672,6 +673,7 @@ int fic_prog_init_sm8() {
 #ifdef FICMK2
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
 #endif
 
     return 0;
@@ -681,11 +683,16 @@ int fic_prog_init_sm8() {
 // FPGA Init
 //-----------------------------------------------------------------------------
 int fic_prog_init() {
-
     // Pin setup for FPGA Init
     SET_INPUT(RP_PROG_B); SET_OUTPUT(RP_PROG_B);
     SET_INPUT(RP_CSI_B); SET_OUTPUT(RP_CSI_B);
     SET_INPUT(RP_RDWR_B); SET_OUTPUT(RP_RDWR_B);
+
+#ifdef FICMK2
+    SET_OUTPUT(RP_CFSEL);
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+#endif
 
     // Set disabled pins
     if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
@@ -701,6 +708,11 @@ int fic_prog_init() {
         usleep(1);
     }
 
+    if (GET_GPIO_PIN(RP_DONE) == 1) {
+        DEBUGOUT("DEBUG: FPGA reset failed\n");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -713,7 +725,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
     // Reset FPGA
     if (pm == PM_NORMAL) {
         // Normal mode -> Normal init
-        fic_prog_init();
+        if (fic_prog_init() < 0) goto PM_SM16_EXIT_ERROR;
 
     } else if (pm == PM_PR) {
         // PR mode -> without init

@@ -1,6 +1,5 @@
 BIN=ficlib2
 CC=gcc -O2 -g
-#CC=gcc -O0 -g
 
 mk1:
 	make $(BIN)
@@ -14,20 +13,24 @@ mk2:
 # 	make $(BIN)
 # 	make pyficlib2.so
 
-$(BIN):
-	$(CC) $(CFLAGS) ficlib2.c -o $(BIN)
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+$(BIN): ficlib2.o
+	$(CC) $(CFLAGS) $? -o $(BIN)
+
+pyficlib2.so: pyficlib2.c ficlib2.o
+	$(CC) $? -shared -I/usr/include/python3.5 -o $@
+
+clean:
+	rm -rf $(BIN)
+	rm -rf *.o
+	rm -rf pyficlib2.so
+	rm -rf /tmp/gpio.lock
 
 run: $(BIN)
 	rm -rf /tmp/gpio.lock && ./$(BIN)
 
 debug:
 	gdb ./$(BIN)
-
-pyficlib2.so: pyficlib2.c ficlib2.o
-	$(CC) $< ficlib2.o -shared -I/usr/include/python3.5 -o $@
-
-clean:
-	rm -rf $(BIN)
-	rm -rf pyficlib2.so
-	rm -rf /tmp/gpio.lock
 

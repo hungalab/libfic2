@@ -56,6 +56,8 @@ The library inspirated by original ficlib by hunga-san.
         - [hls_receive4(count=_int_)](#hls_receive4count_int_)
 - [FAQ](#faq)
     - [What is the lockfile?](#what-is-the-lockfile)
+- [pyficprog.py](#pyficprogpy)
+    - [What is this?](#what-is-this)
 
 <!-- /TOC -->
 
@@ -262,3 +264,48 @@ fic.gpio_close()
 To prevent confilicted GPIO manupulation, the library uses LOCKFILE to prevent confliction. This file will be creating /tmp/gpio.lock
 
 ----
+
+# pyficprog.py
+
+## What is this?
+An alternative ficprog utility using libfic2.
+
+You can configure FPGA on RPi3 like follows:
+
+```
+nyacom@m2fic12:~/project/fic/libfic2$ ./pyficprog.py -h
+usage: pyficprog.py [-h] [-m [{8,16}]] [-pr] bitfile
+
+positional arguments:
+  bitfile               FPGA configuration *.bit
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m [{8,16}], --mode [{8,16}]
+                        Select map mode
+  -pr, --partial        Partial reconfigure mode
+
+nyacom@m2fic12:~/project/fic/libfic2$ ./pyficprog.py -m16 ../fpga/mk2virt4x4/fic_top_sm16.bin
+
+ pyficprog FiC FPGA configuration utility       /\/\
+ by nyacom 2019 (C) <kzh@nyacom.net>          =(____)=
+------------------------------------------------U--U--------
+
+INFO: Program mode: Selectmap 16
+INFO: Partial mode: False
+INFO: Open file ../fpga/mk2virt4x4/fic_top_sm16.bin
+INFO: Bitstream is loaded 48251520B
+INFO: RP_CFSEL is set for FiC Mark2 board
+INFO: RP_CFSEL is set for FiC Mark2 board
+Transfer 5217302 / 48251520 [10.81 %]
+Transfer 11549474 / 48251520 [23.94 %]
+Transfer 17871662 / 48251520 [37.04 %]
+Transfer 24191372 / 48251520 [50.14 %]
+Transfer 30519058 / 48251520 [63.25 %]
+Transfer 36846288 / 48251520 [76.36 %]
+Transfer 43177604 / 48251520 [89.48 %]
+DEBUG: Waiting for RP_DONE
+DEBUG: RP_DONE
+INFO: FPGA configuration done
+
+```

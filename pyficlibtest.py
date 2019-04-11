@@ -19,16 +19,18 @@ import pyficlib2 as fic
 #------------------------------------------------------------------------------
 # EXAMPLE 1 : Program FPGA
 #------------------------------------------------------------------------------
-fic.gpio_open()
+fd = fic.gpio_open()
 
-print("EXAMPLE1: Program FPGA")
-#bit = open("AURORA.bin", "rb").read()
-bit = open("fic_top.bin", "rb").read()
-print("DEBUG: bitfile size=", len(bit))
-#fic.prog_sm16(bit, 0)
-fic.prog_sm8(bit, 0)
+print(fic.get_power())
 
-fic.gpio_close()
+#print("EXAMPLE1: Program FPGA")
+##bit = open("AURORA.bin", "rb").read()
+#bit = open("fic_top.bin", "rb").read()
+#print("DEBUG: bitfile size=", len(bit))
+##fic.prog_sm16(bit, 0)
+##fic.prog_sm8(bit, 0)
+
+fic.gpio_close(fd)
 
 #------------------------------------------------------------------------------
 #fic.wb8(0xffff, b'A')

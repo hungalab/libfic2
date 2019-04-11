@@ -52,6 +52,10 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 	}
 
 	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm, NULL);
+	if (ret < (uint32_t)data.len) {
+		return NULL;
+	}
+
 	return Py_BuildValue("I", ret);
 }
 
@@ -65,6 +69,10 @@ static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwarg
 	}
 
 	uint32_t ret = fic_prog_sm8(data.buf, data.len, pm, NULL);
+	if (ret < data.len) {
+		return NULL;
+	}
+
 	return Py_BuildValue("I", ret);
 }
 

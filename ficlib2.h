@@ -21,7 +21,7 @@
 
 //-----------------------------------------------------------------------------
 #define GPIO_LOCK_TIMEOUT (5)       // Lockfile timeout
-#define COMM_TIMEOUT (5)            // Communication timeout 
+#define COMM_TIMEOUT (10)            // Communication timeout 
 
 #define GPIO_DEV "/dev/gpiomem"
 #define LOCK_FILE "/tmp/gpio.lock"
