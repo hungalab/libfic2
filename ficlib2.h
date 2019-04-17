@@ -16,7 +16,7 @@
 //-----------------------------------------------------------------------------
 // Board definition
 // Note: Uncomment if target board is FiC Mark2
-// #define FICMK2
+#define FICMK2
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -86,27 +86,6 @@ volatile unsigned *gpio;
 #define GPIO_PIN_MAX RP_RDWR_B
 
 //-----------------------------------------------------------------------------
-// PIN Numbers (Functional aliases)
-//-----------------------------------------------------------------------------
-#define RP_PWOK RP_CD16
-#define RP_G_CKSEL RP_CD17
-#define RP_CFSEL RP_CD17        // for mk2 board
-
-#define RP_RREQ RP_CD15
-#define RP_RSTB RP_CD14
-#define RP_FREQ RP_CD13
-#define RP_FACK RP_CD12
-
-#define RP_DATA0 RP_CD4
-#define RP_DATA1 RP_CD5
-#define RP_DATA2 RP_CD6
-#define RP_DATA3 RP_CD7
-#define RP_DATA4 RP_CD8
-#define RP_DATA5 RP_CD9
-#define RP_DATA6 RP_CD10
-#define RP_DATA7 RP_CD11
-
-//-----------------------------------------------------------------------------
 // PIN bits
 //-----------------------------------------------------------------------------
 #define RP_PIN_INIT (1<<RP_INIT)
@@ -136,11 +115,44 @@ volatile unsigned *gpio;
 #define RP_PIN_RDWR_B (1<<RP_RDWR_B) 
 
 //-----------------------------------------------------------------------------
-// PIN bits (Funtional aliases)
+// PIN Alias Number
+//-----------------------------------------------------------------------------
+
+#ifndef FICMK2
+//-----------------------------------------------------------------------------
+// PIN Numbers (Functional aliases for mk1 board)
+//-----------------------------------------------------------------------------
+#define RP_PWOK RP_CD16
+#define RP_G_CKSEL RP_CD17
+#define RP_CFSEL RP_CD17        // for mk2 board
+
+#define RP_RREQ RP_CD15
+#define RP_RSTB RP_CD14
+#define RP_FREQ RP_CD13
+#define RP_FACK RP_CD12
+
+#define RP_DATA0 RP_CD8
+#define RP_DATA1 RP_CD9
+#define RP_DATA2 RP_CD10
+#define RP_DATA3 RP_CD11
+
+//#define RP_DATA0 RP_CD4
+//#define RP_DATA1 RP_CD5
+//#define RP_DATA2 RP_CD6
+//#define RP_DATA3 RP_CD7
+//#define RP_DATA4 RP_CD8
+//#define RP_DATA5 RP_CD9
+//#define RP_DATA6 RP_CD10
+//#define RP_DATA7 RP_CD11
+
+#define RP_DATA_LOW  RP_DATA0
+#define RP_DATA_TOP  RP_DATA3
+
+//-----------------------------------------------------------------------------
+// PIN bits (Funtional aliases for mk1 board)
 //-----------------------------------------------------------------------------
 #define RP_PIN_PWOK RP_PIN_CD16
 #define RP_PIN_G_CKSEL RP_PIN_CD17
-#define RP_PIN_CFSEL RP_PIN_CD17        // for mk2 board
 
 #define RP_PIN_RREQ RP_PIN_CD15
 #define RP_PIN_RSTB RP_PIN_CD14
@@ -155,17 +167,118 @@ volatile unsigned *gpio;
 #define RP_PIN_DATA5 RP_PIN_CD9
 #define RP_PIN_DATA6 RP_PIN_CD10
 #define RP_PIN_DATA7 RP_PIN_CD11
+
 //-----------------------------------------------------------------------------
-//#define COMM_MASK 0x00cfff00
+// BIT MASK
+//-----------------------------------------------------------------------------
 #define COMM_DATABUS_MASK                                                      \
   (RP_PIN_RSTB | RP_PIN_DATA0 | RP_PIN_DATA1 | RP_PIN_DATA2 | RP_PIN_DATA3 |   \
    RP_PIN_DATA4 | RP_PIN_DATA5 | RP_PIN_DATA6 | RP_PIN_DATA7)
 
+#else // For fic mark2 board
+
+//   bit       Conf_IO_IN : Comment
+//   //   31-28        x  x  0 :
+//   //      27    FAK  I  0 :
+//   //      26    FRQ  I  0 :
+//   //      25     CFSL  O  0 :
+//   //      24        x  I  x :
+//   //      23   DB[15]  B  0 :
+//   //      22   DB[14]  B  0 :
+//   //      21   DB[13]  B  0 :
+//   //      20   DB[12]  B  0 :
+//   //      19   DB[11]  B  0 :
+//   //      18   DB[10]  B  0 :
+//   //      17   DB[ 9]  B  0 :
+//   //      16   DB[ 8]  B  0 :
+//   //      15   DB[ 7]  B  0 :
+//   //      14   DB[ 6]  B  0 :
+//   //      13   DB[ 5]  B  0 :
+//   //      12   DB[ 4]  B  0 :
+//   //      11   DB[ 3]  B  0 :
+//   //      10   DB[ 2]  B  0 :
+//   //       9   DB[ 1]  B  0 :
+//   //       8   DB[ 0]  B  0 :
+//   //       7        x  x  0 :
+//   //       6   FREQ    O  1 :
+//   //       5       x   I  0 :
+//   //       4   FSTB    O  1 :
+//   //       3   I2C_SC  B  x :
+//   //       2   I2C_SD  B  x :
+//   //    1- 0        x  x  x :
+
+//-----------------------------------------------------------------------------
+// PIN Numbers (Functional aliases for mk2 board)
+//-----------------------------------------------------------------------------
+#define RP_PWOK  RP_CD16
+#define RP_CFSEL RP_CD17        // for mk2 board
+
+#define RP_RREQ  RP_DONE
+#define RP_RSTB  RP_INIT
+#define RP_FREQ  RP_CSI_B
+#define RP_FACK  RP_RDWR_B
+
+#define RP_DATA0 RP_CD0
+#define RP_DATA1 RP_CD1
+#define RP_DATA2 RP_CD2
+#define RP_DATA3 RP_CD3
+#define RP_DATA4 RP_CD4
+#define RP_DATA5 RP_CD5
+#define RP_DATA6 RP_CD6
+#define RP_DATA7 RP_CD7
+#define RP_DATA8 RP_CD8
+#define RP_DATA9 RP_CD9
+#define RP_DATA10 RP_CD10
+#define RP_DATA11 RP_CD11
+#define RP_DATA12 RP_CD12
+#define RP_DATA13 RP_CD13
+#define RP_DATA14 RP_CD14
+#define RP_DATA15 RP_CD15
+
+#define RP_DATA_LOW  RP_DATA0
+#define RP_DATA_TOP  RP_DATA15
+//-----------------------------------------------------------------------------
+// PIN bits (Funtional aliases for mk2 board)
+//-----------------------------------------------------------------------------
+#define RP_PIN_PWOK RP_PIN_CD16
+#define RP_PIN_CFSEL RP_PIN_CD17
+
+#define RP_PIN_RREQ  RP_PIN_DONE
+#define RP_PIN_RSTB  RP_PIN_INIT
+#define RP_PIN_FREQ  RP_PIN_CSI_B
+#define RP_PIN_FACK  RP_PIN_RDWR_B
+
+#define RP_PIN_DATA0 RP_PIN_CD0
+#define RP_PIN_DATA1 RP_PIN_CD1
+#define RP_PIN_DATA2 RP_PIN_CD2
+#define RP_PIN_DATA3 RP_PIN_CD3
+#define RP_PIN_DATA4 RP_PIN_CD4
+#define RP_PIN_DATA5 RP_PIN_CD5
+#define RP_PIN_DATA6 RP_PIN_CD6
+#define RP_PIN_DATA7 RP_PIN_CD7
+#define RP_PIN_DATA8 RP_PIN_CD8
+#define RP_PIN_DATA9 RP_PIN_CD9
+#define RP_PIN_DATA10 RP_PIN_CD10
+#define RP_PIN_DATA11 RP_PIN_CD11
+#define RP_PIN_DATA12 RP_PIN_CD12
+#define RP_PIN_DATA13 RP_PIN_CD13
+#define RP_PIN_DATA14 RP_PIN_CD14
+#define RP_PIN_DATA15 RP_PIN_CD15
+
+#define COMM_DATABUS_MASK (RP_PIN_RSTB |                                                 \
+                           RP_PIN_DATA0 | RP_PIN_DATA1 | RP_PIN_DATA2 | RP_PIN_DATA3 |   \
+                           RP_PIN_DATA4 | RP_PIN_DATA5 | RP_PIN_DATA6 | RP_PIN_DATA7 |   \
+                           RP_PIN_DATA8 | RP_PIN_DATA9 | RP_PIN_DATA10 | RP_PIN_DATA11 | \
+                           RP_PIN_DATA12 | RP_PIN_DATA13 | RP_PIN_DATA14 | RP_PIN_DATA15)
+#endif
+
+//-----------------------------------------------------------------------------
 #define COMM_CMD_HLS_START 0x01
 #define COMM_CMD_HLS_RESET 0x04
 #define COMM_CMD_WRITE 0x02
 #define COMM_CMD_READ 0x03
 
+//-----------------------------------------------------------------------------
 #define COMM_ADDR_HLS 0x1000
 
 //-----------------------------------------------------------------------------
@@ -197,33 +310,27 @@ enum COMM_PORT_DIR {
 // extern inline int fic_set_gpio(uint32_t set);
 // extern inline int fic_clr_gpio(uint32_t set);
 
-extern int fic_comm_setup8();
-extern int fic_comm_setup4();
+extern int fic_comm_setup();
 
 extern int fic_done();
 extern int fic_power();
 
-extern void fic_comm_portdir8(enum COMM_PORT_DIR dir);
-extern void fic_comm_portdir4(enum COMM_PORT_DIR dir);
+extern void fic_comm_portdir(enum COMM_PORT_DIR dir);
 
 extern int fic_comm_wait_fack_down();
 extern int fic_comm_wait_fack_up();
 extern int fic_comm_wait_freq_down();
 extern int fic_comm_wait_freq_up();
 
-extern int fic_comm_send8(uint32_t bus);
-extern int fic_comm_send4(uint32_t bus);
+extern int fic_comm_send(uint32_t bus);
 extern int fic_comm_receive();
 
-extern int fic_comm_setaddr8(uint16_t addr);
-extern int fic_comm_setaddr4(uint16_t addr);
+extern int fic_comm_setaddr(uint16_t addr);
 
-extern int fic_wb8(uint16_t addr, uint8_t data);
-extern int fic_rb8(uint16_t addr);
-extern int fic_wb4(uint16_t addr, uint8_t data);
-extern int fic_rb4(uint16_t addr);
-extern int fic_hls_send4(uint8_t *data, size_t size);
-extern int fic_hls_receive4(size_t size, uint8_t *buf);
+extern int fic_write(uint16_t addr, uint16_t data);
+extern int fic_read(uint16_t addr);
+extern int fic_hls_send(uint8_t *data, size_t size);
+extern int fic_hls_receive(size_t size, uint8_t *buf);
 
 extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();
@@ -232,10 +339,8 @@ extern int fic_prog_init();
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
 extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
 
-extern int fic_hls_start8();
-extern int fic_hls_start4();
-extern int fic_hls_reset8();
-extern int fic_hls_reset4();
+extern int fic_hls_start();
+extern int fic_hls_reset();
 
 extern int fic_gpio_open();
 extern int fic_gpio_close(int fd_lock);
