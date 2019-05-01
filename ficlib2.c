@@ -236,8 +236,13 @@ int fic_comm_receive() {
         return -1;
     }
 
+#ifndef FICMK2
     uint8_t rcv = 0;
-    rcv = (GET_GPIO >> RP_DATA0) & 0xff;
+    rcv = (GET_GPIO >> RP_DATA_LOW) & 0xff;
+#else
+    uint16_t rcv = 0;
+    rcv = (GET_GPIO >> RP_DATA_LOW) & 0xffff;
+#endif
 
     if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
 
@@ -298,8 +303,7 @@ int fic_write(uint16_t addr, uint16_t data) {
 
 #else
     // Send 16bit data
-    if (fic_comm_send((data & 0xff) << RP_DATA_LOW) < 0) return -1;
-    DEBUGTHRU;
+    if (fic_comm_send(data << RP_DATA_LOW) < 0) return -1;
 
 #endif
 
@@ -337,10 +341,10 @@ int fic_read(uint16_t addr) {
     uint8_t rcv = 0;
     // Receive 4bit high data
     i = fic_comm_receive(); if (i < 0) return -1;
-    rcv = i & 0xf0;
+    rcv = (i & 0x0f) << 4;
 
     i = fic_comm_receive(); if (i < 0) return -1;
-    rcv |= (i >> 4) & 0x0f;
+    rcv |= i & 0x0f;
 
 #else
     uint16_t rcv = 0;
@@ -921,6 +925,13 @@ void test_rw() {
     }
     uint8_t rcv = ret;
     printf("TEST RW write=%x, read=%x result=%s\n", data, rcv, data == rcv ? "PASS" : "FAIL");
+
+    printf("TEST read:\n");
+    ret = fic_read(0xfffa);
+    if (ret < 0) {
+        printf("DEBUG: ERROR at fic_read\n");
+    }
+    printf("TEST read=%x\n", ret);
 
 //    // HLS logic reset
 //    printf("HLS module reset\n");
