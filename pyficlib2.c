@@ -48,13 +48,17 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 
 	static char *kwd[] = {"data", "progmode", NULL};
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
 
 	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm, NULL);
 	if (ret < (uint32_t)data.len) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
+
+	PyBuffer_Release(&data);
 
 	return Py_BuildValue("I", ret);
 }
@@ -65,13 +69,17 @@ static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwarg
 
 	static char *kwd[] = {"data", "progmode", NULL};
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
 
 	uint32_t ret = fic_prog_sm8(data.buf, data.len, pm, NULL);
 	if (ret < data.len) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
+
+	PyBuffer_Release(&data);
 
 	return Py_BuildValue("I", ret);
 }
@@ -131,13 +139,17 @@ static PyObject *py_fic_hls_send(PyObject *self, PyObject *args, PyObject *kwarg
 
 	static char *kwd[] = {"data", NULL};
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*", kwd, &data)) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
 
 	int ret;
 	if ((ret = fic_hls_send(data.buf, data.len)) < 0) {
+		PyBuffer_Release(&data);
 		return NULL;
 	}
+
+	PyBuffer_Release(&data);
 
 	return Py_BuildValue("");
 }
