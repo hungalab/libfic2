@@ -158,7 +158,7 @@ static PyObject *py_fic_hls_receive(PyObject *self, PyObject *args, PyObject *kw
 	size_t size;
 
 	static char *kwd[] = {"size", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &size)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "I", kwd, &size)) {
 		return NULL;
 	}
 
