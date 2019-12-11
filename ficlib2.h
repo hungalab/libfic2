@@ -21,7 +21,7 @@
 
 //-----------------------------------------------------------------------------
 #define GPIO_LOCK_TIMEOUT (5)       // Lockfile timeout
-#define COMM_TIMEOUT (10)            // Communication timeout 
+#define COMM_TIMEOUT (30)           // Communication timeout 
 
 #define GPIO_DEV "/dev/gpiomem"
 #define LOCK_FILE "/tmp/gpio.lock"
@@ -330,7 +330,7 @@ extern int fic_comm_setaddr(uint16_t addr);
 extern int fic_write(uint16_t addr, uint16_t data);
 extern int fic_read(uint16_t addr);
 extern int fic_hls_send(uint8_t *data, size_t size);
-extern int fic_hls_receive(size_t size, uint8_t *buf);
+extern int fic_hls_receive(uint8_t *buf, size_t size);
 
 extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();

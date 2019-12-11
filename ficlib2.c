@@ -365,6 +365,7 @@ int fic_read(uint16_t addr) {
 
 //-----------------------------------------------------------------------------
 // Transfer bytes via 4bit interface
+// Modify 2019.11.30: Make the function send each 1B on *buf via 4bit interface
 //-----------------------------------------------------------------------------
 int fic_hls_send(uint8_t *data, size_t size) {
     if (fic_comm_setup() < 0) return -1;
@@ -383,11 +384,14 @@ int fic_hls_send(uint8_t *data, size_t size) {
     size_t i;
     for (i = 0; i < size; i++) {
         // Send 4bit high data
+        if (fic_comm_send(((*(data+i) & 0xf0) >> 4) << RP_DATA_LOW) < 0) return -1;
+        // Send 4bit low data
         if (fic_comm_send((*(data+i) & 0x0f) << RP_DATA_LOW) < 0) return -1;
     }
 
     // RREQ dessert
-    if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) return -1;
+    //if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) return -1;
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
     if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
@@ -397,8 +401,9 @@ int fic_hls_send(uint8_t *data, size_t size) {
 
 //-----------------------------------------------------------------------------
 // Receive bytes via 4bit interface
+// Modify 2019.11.30: Make the function receive each 1B on *buf via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_receive(size_t size, uint8_t *buf) {
+int fic_hls_receive(uint8_t *buf, size_t size) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
@@ -420,9 +425,19 @@ int fic_hls_receive(size_t size, uint8_t *buf) {
 
     size_t i;
     for (i = 0; i < size; i++) {
-        //uint8_t rcv = 0;
-        int rcv = fic_comm_receive(); if (rcv < 0) return -1;
-        *(buf+i) = rcv & 0xff;
+        int rcv = 0;
+        uint8_t rvh, rvl;
+
+        // Receive Low 4bit
+        rcv = fic_comm_receive(); if (rcv < 0) return -1;
+        rvh = rcv & 0x0f;
+
+        // Receive High 4bit
+        rcv = fic_comm_receive(); if (rcv < 0) return -1;
+        rvl = rcv & 0x0f;
+
+        *(buf+i) = (rvh << 4) | rvl;
+        //*(buf+i) = rvh;
     }
 
     // RREQ dessert
@@ -876,6 +891,7 @@ int fic_gpio_close(int fd_lock) {
     return 0;
 }
 
+#ifndef SHARED_LIB
 //-----------------------------------------------------------------------------
 // TEST CODE
 //-----------------------------------------------------------------------------
@@ -884,8 +900,8 @@ int fic_gpio_close(int fd_lock) {
 //#define BITFILE "ring_akram.bin"
 //#define BITFILE "RPBT115.bin"
 //#define BITFILE "AURORA.bin"
-//#define BITFILE "fic_top.bin"
-#define BITFILE "mk2_fic_top.bin"
+#define BITFILE "fic_top.bin"
+//#define BITFILE "mk2_fic_top.bin"
 
 void test_fpga_prog() {
     int fd;
@@ -898,8 +914,8 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-//    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
@@ -935,32 +951,37 @@ void test_rw() {
 
 //    // HLS logic reset
 //    printf("HLS module reset\n");
-//    fic_hls_reset4();
+//    fic_hls_reset();
 //    printf("HLS module start\n");
-//    fic_hls_start4();
+//    fic_hls_start();
 //
 //    // Multi byte transfer
-////    addr = 0xffff;
+//    addr = 0xffff;
 //    addr = 0x1000;
-//    uint8_t list[] = "TEST\0";
-//    uint8_t buf[8] = {0};
+//    uint8_t list = 0x02;
+//    uint8_t buf[16] = {0};
 //
 //    printf("HLS module write at %x\n", addr);
-//    fic_hls_send4(list, 1);
+//    fic_hls_send(&list, 1);
+//
 //    printf("HLS module read at %x\n", addr);
-//    fic_hls_receive4(1, buf);
-////    printf("DEBUG: read=%s\n", buf);
+//    fic_hls_receive(16, buf);
+//    printf("DEBUG: read=");
+//    for (int i = 0; i < 16; i++) {
+//        printf("%x ", buf[i]);
+//    }
+//    printf("\n");
 
 }
 //-----------------------------------------------------------------------------
-
 int main() {
     int fd = fic_gpio_open();    // Open GPIO
-    printf("DEBUG: gpio fd %d \n", fd);
-
+//    printf("DEBUG: gpio fd %d \n", fd);
 //    test_fpga_prog();
     test_rw();
-
     fic_gpio_close(fd);   // Close GPIO
 
 }
+
+#endif
+//-----------------------------------------------------------------------------

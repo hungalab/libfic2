@@ -155,24 +155,24 @@ static PyObject *py_fic_hls_send(PyObject *self, PyObject *args, PyObject *kwarg
 }
 
 static PyObject *py_fic_hls_receive(PyObject *self, PyObject *args, PyObject *kwargs) {
-	size_t count;
+	size_t size;
 
-	static char *kwd[] = {"count", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &count)) {
+	static char *kwd[] = {"size", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "H", kwd, &size)) {
 		return NULL;
 	}
 
-	uint8_t *buf = (uint8_t*) PyObject_Malloc(sizeof(uint8_t)*count);
+	uint8_t *buf = (uint8_t*) PyObject_Malloc(sizeof(uint8_t)*size);
 	if (!buf) {
 		return NULL;
 	}
 
 	int ret;
-	if ((ret = fic_hls_receive(count, buf)) < 0) {
+	if ((ret = fic_hls_receive(buf, size)) < 0) {
 		return NULL;
 	}
 
-	PyObject *array = PyByteArray_FromStringAndSize(buf, count);
+	PyObject *array = PyByteArray_FromStringAndSize(buf, size);
 	return array;
 }
 //-----------------------------------------------------------------------------

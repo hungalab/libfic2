@@ -19,6 +19,9 @@ mk2:
 $(BIN): ficlib2.o
 	$(CC) $(CFLAGS) $? -o $(BIN)
 
+libfic2.so: ficlib2.c
+	$(CC) $? -shared -DSHARED_LIB -o $@
+
 pyficlib2.so: pyficlib2.c ficlib2.o
 	$(CC) $? -shared -I/usr/include/python3.5 -o $@
 
