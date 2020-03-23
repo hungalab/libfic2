@@ -285,9 +285,6 @@ int fic_write(uint16_t addr, uint16_t data) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
-
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
@@ -325,9 +322,6 @@ int fic_write(uint16_t addr, uint16_t data) {
 int fic_read(uint16_t addr) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
-
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -377,9 +371,6 @@ int fic_hls_send(uint8_t *data, size_t size) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
-
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 //    if (fic_comm_wait_freq_up() < 0) return -1;
@@ -415,9 +406,6 @@ int fic_hls_send(uint8_t *data, size_t size) {
 int fic_hls_receive(uint8_t *buf, size_t size) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
-
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -774,9 +762,6 @@ int fic_hls_start() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
-
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
@@ -796,9 +781,6 @@ int fic_hls_start() {
 int fic_hls_reset() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
-
-    // Check FPGA is ready
-    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
