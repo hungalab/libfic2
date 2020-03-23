@@ -567,17 +567,17 @@ int fic_prog_init(enum PROG_MODE pm) {
     SET_INPUT(RP_RDWR_B); SET_OUTPUT(RP_RDWR_B);
 
     // Set disabled pins
-    if (fic_set_gpio(RP_PIN_PROG_B | RP_CSI_B | RP_RDWR_B) < 0) return -1;
+    if (fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
 
- #ifdef FICMK2
+#ifdef FICMK2
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
     printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
 #endif
-    
+
     if (pm == PM_PR) {
         // Partial reconfiguration mode
-        if (fic_clr_gpio(RP_CSI_B | RP_RDWR_B) < 0) return -1;  // Assert
+        if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;  // Assert
         return 0;
     }
 
