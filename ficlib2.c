@@ -10,7 +10,7 @@ static inline int fic_set_gpio(uint32_t set) {
     while ((GET_GPIO & set) != set) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-            fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+            fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
@@ -26,7 +26,7 @@ static inline int fic_clr_gpio(uint32_t set) {
     while ((GET_GPIO & set) != 0) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-            fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+            fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
             return -1;
         }
@@ -40,7 +40,7 @@ static inline int fic_clr_gpio(uint32_t set) {
 // Use DEBUGCOM macro for debug
 //-----------------------------------------------------------------------------
 void fic_comm_busdebug(int line) {
-    printf("DEBUG: L%d GPIO=%x ", line, GET_GPIO);
+    printf("[libfic2][DEBUG]: L%d GPIO=%x ", line, GET_GPIO);
 
     if (GET_GPIO & RP_PIN_RREQ) {
         printf("RREQ = 1 ");
@@ -130,7 +130,7 @@ int fic_comm_wait_fack_down() {
     while (GET_GPIO_PIN(RP_FACK) == 1) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
           return -1;
         }
@@ -145,7 +145,7 @@ int fic_comm_wait_fack_up() {
     while (GET_GPIO_PIN(RP_FACK) == 0) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
           return -1;
         }
@@ -160,7 +160,7 @@ int fic_comm_wait_freq_down() {
     while (GET_GPIO_PIN(RP_FREQ) == 1) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
           return -1;
         }
@@ -175,7 +175,7 @@ int fic_comm_wait_freq_up() {
     while (GET_GPIO_PIN(RP_FREQ) == 0) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "ERROR: Communication timeout at %s %s %d\n",
+          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
           return -1;
         }
@@ -207,7 +207,7 @@ int fic_comm_send(uint32_t bus) {
     }
 
     if (fic_comm_wait_fack_up() < 0) {
-        fprintf(stderr, "ERROR: fic_comm_wait_fack_up failed at %s %s %d\n",
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
@@ -217,7 +217,7 @@ int fic_comm_send(uint32_t bus) {
     }
 
     if (fic_comm_wait_fack_down() < 0) {
-        fprintf(stderr, "ERROR: fic_comm_wait_fack_down failed at %s %s %d\n",
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
@@ -231,7 +231,7 @@ int fic_comm_receive() {
     if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
 
     if (fic_comm_wait_fack_up() < 0) {
-        fprintf(stderr, "ERROR: fic_comm_wait_fack_up failed at %s %s %d\n",
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
@@ -247,7 +247,7 @@ int fic_comm_receive() {
     if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
 
     if (fic_comm_wait_fack_down() < 0) {
-        fprintf(stderr, "ERROR: fic_comm_wait_fack_down failed at %s %s %d\n",
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
                   __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
@@ -284,6 +284,9 @@ int fic_comm_setaddr(uint16_t addr) {
 int fic_write(uint16_t addr, uint16_t data) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
+
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -322,6 +325,9 @@ int fic_write(uint16_t addr, uint16_t data) {
 int fic_read(uint16_t addr) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
+
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -371,6 +377,9 @@ int fic_hls_send(uint8_t *data, size_t size) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
+
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 //    if (fic_comm_wait_freq_up() < 0) return -1;
@@ -406,6 +415,9 @@ int fic_hls_send(uint8_t *data, size_t size) {
 int fic_hls_receive(uint8_t *buf, size_t size) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
+
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -548,23 +560,27 @@ int fic_prog_init_sm8() {
 //-----------------------------------------------------------------------------
 // FPGA Init
 //-----------------------------------------------------------------------------
-int fic_prog_init() {
+int fic_prog_init(enum PROG_MODE pm) {
     // Pin setup for FPGA Init
     SET_INPUT(RP_PROG_B); SET_OUTPUT(RP_PROG_B);
     SET_INPUT(RP_CSI_B); SET_OUTPUT(RP_CSI_B);
     SET_INPUT(RP_RDWR_B); SET_OUTPUT(RP_RDWR_B);
 
-#ifdef FICMK2
+    // Set disabled pins
+    if (fic_set_gpio(RP_PIN_PROG_B | RP_CSI_B | RP_RDWR_B) < 0) return -1;
+
+ #ifdef FICMK2
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
     printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
 #endif
+    
+    if (pm == PM_PR) {
+        // Partial reconfiguration mode
+        if (fic_clr_gpio(RP_CSI_B | RP_RDWR_B) < 0) return -1;  // Assert
+        return 0;
+    }
 
-    // Set disabled pins
-    if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
-    if (fic_set_gpio(RP_CSI_B) < 0) return -1;
-    if (fic_set_gpio(RP_RDWR_B) < 0) return -1;
-     
     // Do FPGA init sequence
     if (fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
     if (fic_clr_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
@@ -575,7 +591,7 @@ int fic_prog_init() {
     }
 
     if (GET_GPIO_PIN(RP_DONE) == 1) {
-        DEBUGOUT("DEBUG: FPGA reset failed\n");
+        DEBUGOUT("[libfic2][DEBUG]: FPGA reset failed\n");
         return -1;
     }
 
@@ -589,16 +605,18 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
     if (fic_prog_init_sm16() < 0) goto PM_SM16_EXIT_ERROR; // Set pinmode
 
     // Reset FPGA
-    if (pm == PM_NORMAL) {
-        // Normal mode -> Normal init
-        if (fic_prog_init() < 0) goto PM_SM16_EXIT_ERROR;
+    if (fic_prog_init(pm) < 0) goto PM_SM16_EXIT_ERROR;
 
-    } else if (pm == PM_PR) {
-        // PR mode -> without init
-        if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
-        if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
+    //if (pm == PM_NORMAL) {
+    //    // Normal mode -> Normal init
+    //    if (fic_prog_init() < 0) goto PM_SM16_EXIT_ERROR;
 
-    }
+    //} else if (pm == PM_PR) {
+    //    // PR mode -> without init
+    //    if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
+    //    if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
+
+    //}
 
     // Configure FPGA
     if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
@@ -618,7 +636,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
         if (fic_set_gpio(d & 0x00ffff00) < 0) goto PM_SM16_EXIT_ERROR;
         if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
 
-//        DEBUGOUT("DEBUG:%lx %x\n", i, GET_GPIO);
+//        DEBUGOUT("[libfic2][DEBUG]:%lx %x\n", i, GET_GPIO);
         if (tx_byte != NULL) {
             *tx_byte += 2;
         }
@@ -632,7 +650,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
-                    "ERROR: FPGA configuration failed at %s %s %d\n",
+                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
                     __FILE__, __FUNCTION__, __LINE__);
             goto PM_SM16_EXIT_ERROR;
         }
@@ -640,20 +658,20 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
 
     // Wait until RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("DEBUG: Waiting for RP_DONE\n");
+        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
                 fprintf(stderr,
-                        "ERROR: FPGA configuration failed at %s %s %d\n",
+                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
                         __FILE__, __FUNCTION__, __LINE__);
                 goto PM_SM16_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
         }
-        DEBUGOUT("DEBUG: RP_DONE\n");
+        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
         if (fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
     }
 
@@ -672,15 +690,17 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
     if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
 
     // Reset FPGA
-    if (pm == PM_NORMAL) {
-        // Normal mode -> Normal init
-        if (fic_prog_init() < 0) goto PM_SM8_EXIT_ERROR;
+    if (fic_prog_init(pm) < 0) goto PM_SM8_EXIT_ERROR;
 
-    } else if (pm == PM_PR) {
-        // PR mode -> without init
-        if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
-        if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
-    }
+    //if (pm == PM_NORMAL) {
+    //    // Normal mode -> Normal init
+    //    if (fic_prog_init() < 0) goto PM_SM8_EXIT_ERROR;
+
+    //} else if (pm == PM_PR) {
+    //    // PR mode -> without init
+    //    if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
+    //    if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
+    //}
 
     // Configure FPGA
     if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
@@ -716,7 +736,7 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
             fprintf(stderr,
-                    "ERROR: FPGA configuration failed at %s %s %d\n",
+                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
                     __FILE__, __FUNCTION__, __LINE__);
             goto PM_SM8_EXIT_ERROR;
         }
@@ -724,20 +744,20 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
 
     // Waitng RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("DEBUG: Waiting for RP_DONE\n");
+        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
                 fprintf(stderr,
-                        "ERROR: FPGA configuration failed at %s %s %d\n",
+                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
                         __FILE__, __FUNCTION__, __LINE__);
                 goto PM_SM8_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
         }
-        DEBUGOUT("DEBUG: RP_DONE\n");
+        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
         if (fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     }
 
@@ -753,6 +773,9 @@ PM_SM8_EXIT_ERROR:
 int fic_hls_start() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
+
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
 
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
@@ -774,6 +797,9 @@ int fic_hls_reset() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
+    // Check FPGA is ready
+    if (!fic_done()) return -1;
+
     // RREQ assert
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 
@@ -794,6 +820,9 @@ int fic_hls_reset() {
 // Create LOCK_FILE
 //-----------------------------------------------------------------------------
 int gpio_lock() {
+
+    printf("[libfic2][DEBUG]: Obtaining GPIO lock...\n");
+
     // Check LOCKFILE
     time_t t1, t2;
     time(&t1);
@@ -801,9 +830,10 @@ int gpio_lock() {
     struct stat st;
     while (stat(LOCK_FILE, &st) == 0) {
         sleep(1);
+        printf("[libfic2][DEBUG]: Attempting obtaining GPIO lock...\n");
         time(&t2);
         if ((t2 - t1) > GPIO_LOCK_TIMEOUT) {
-            fprintf(stderr, "ERROR: GPIO lock timeout\n");
+            fprintf(stderr, "[libfic2][ERROR]: GPIO lock timeout\n");
             return -1;
         }
     }
@@ -811,13 +841,13 @@ int gpio_lock() {
     // Create LOCKFILE
     int lock_fd = open(LOCK_FILE, O_CREAT|O_RDONLY, 0666);
     if (lock_fd < 0) {
-		fprintf(stderr, "ERROR: Cant create LOCK_FILE\n");
+		fprintf(stderr, "[libfic2][ERROR]: Cant create LOCK_FILE\n");
         return -1;
     }
 
     // flock LOCKFILE
     if (flock(lock_fd, LOCK_EX) < 0) {
-		fprintf(stderr, "ERROR: Cant lock LOCK_FILE\n");
+		fprintf(stderr, "[libfic2][ERROR]: Cant lock LOCK_FILE\n");
         return -1;
     }
 
@@ -830,7 +860,7 @@ int gpio_lock() {
 int gpio_unlock(int fd_lock) {
     close(fd_lock);                 // Close lockfile fd
     if (unlink(LOCK_FILE) < 0 ) {   // Delete lockfile
-		fprintf(stderr, "ERROR: Cant remove LOCK_FILE\n");
+		fprintf(stderr, "[libfic2][ERROR]: Cant remove LOCK_FILE\n");
         return -1;
     }
 
@@ -843,14 +873,14 @@ int gpio_unlock(int fd_lock) {
 int fic_gpio_open() {
     int fd_lock = gpio_lock();
     if (fd_lock < 0) {
-		fprintf(stderr, "ERROR: GPIO open failed\n");
+		fprintf(stderr, "[libfic2][ERROR]: GPIO open failed\n");
         return -1;
     }
 
 	/* open GPIO_DEV */
     int mem_fd = open(GPIO_DEV, O_RDWR|O_SYNC);
 	if (mem_fd < 0) {
-		fprintf(stderr, "ERROR: can't open %s \n", GPIO_DEV);
+		fprintf(stderr, "[libfic2][ERROR]: can't open %s \n", GPIO_DEV);
         return -1;
 	}
 
@@ -868,7 +898,7 @@ int fic_gpio_open() {
     close(mem_fd); //No need to keep mem_fd open after mmap
 
 	if (gpio_map == MAP_FAILED) {
-		fprintf(stderr, "ERROR: mmap error %d\n", (int)gpio_map);//errno also set!
+		fprintf(stderr, "[libfic2][ERROR]: mmap error %d\n", (int)gpio_map);//errno also set!
         return -1;
 	}
 
@@ -900,8 +930,8 @@ int fic_gpio_close(int fd_lock) {
 //#define BITFILE "ring_akram.bin"
 //#define BITFILE "RPBT115.bin"
 //#define BITFILE "AURORA.bin"
-#define BITFILE "fic_top.bin"
-//#define BITFILE "mk2_fic_top.bin"
+//#define BITFILE "fic_top.bin"
+#define BITFILE "mk2_fic_top.bin"
 
 void test_fpga_prog() {
     int fd;
@@ -914,8 +944,8 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+//    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
@@ -931,13 +961,13 @@ void test_rw() {
     printf("TEST write:\n");
     ret = fic_write(addr, data);
     if (ret < 0) {
-        printf("DEBUG: ERROR at fic_write\n");
+        printf("[libfic2][DEBUG]: ERROR at fic_write\n");
     }
 
     printf("TEST read:\n");
     ret = fic_read(addr);
     if (ret < 0) {
-        printf("DEBUG: ERROR at fic_read\n");
+        printf("[libfic2][DEBUG]: ERROR at fic_read\n");
     }
     uint8_t rcv = ret;
     printf("TEST RW write=%x, read=%x result=%s\n", data, rcv, data == rcv ? "PASS" : "FAIL");
@@ -945,7 +975,7 @@ void test_rw() {
     printf("TEST read:\n");
     ret = fic_read(0xfffa);
     if (ret < 0) {
-        printf("DEBUG: ERROR at fic_read\n");
+        printf("[libfic2][DEBUG]: ERROR at fic_read\n");
     }
     printf("TEST read=%x\n", ret);
 
@@ -966,7 +996,7 @@ void test_rw() {
 //
 //    printf("HLS module read at %x\n", addr);
 //    fic_hls_receive(16, buf);
-//    printf("DEBUG: read=");
+//    printf("[libfic2][DEBUG]: read=");
 //    for (int i = 0; i < 16; i++) {
 //        printf("%x ", buf[i]);
 //    }
@@ -976,9 +1006,9 @@ void test_rw() {
 //-----------------------------------------------------------------------------
 int main() {
     int fd = fic_gpio_open();    // Open GPIO
-//    printf("DEBUG: gpio fd %d \n", fd);
-//    test_fpga_prog();
-    test_rw();
+    printf("DEBUG: gpio fd %d \n", fd);
+    test_fpga_prog();
+//    test_rw();
     fic_gpio_close(fd);   // Close GPIO
 
 }

@@ -85,7 +85,7 @@ static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwarg
 }
 
 static PyObject *py_fic_prog_init(PyObject *self, PyObject *args) {
-	fic_prog_init();
+	fic_prog_init(PM_NORMAL);
 	return Py_BuildValue("");
 }
 

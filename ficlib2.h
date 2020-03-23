@@ -20,8 +20,8 @@
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-#define GPIO_LOCK_TIMEOUT (5)       // Lockfile timeout
-#define COMM_TIMEOUT (30)           // Communication timeout 
+#define GPIO_LOCK_TIMEOUT (30)      // Lockfile timeout
+#define COMM_TIMEOUT (10)           // Communication timeout 
 
 #define GPIO_DEV "/dev/gpiomem"
 #define LOCK_FILE "/tmp/gpio.lock"
@@ -334,7 +334,7 @@ extern int fic_hls_receive(uint8_t *buf, size_t size);
 
 extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();
-extern int fic_prog_init();
+extern int fic_prog_init(enum PROG_MODE pm);
 
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
 extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
