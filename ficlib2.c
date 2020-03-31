@@ -1,6 +1,17 @@
 #include "ficlib2.h"
 
 //-----------------------------------------------------------------------------
+struct _prog_async_status PROG_ASYNC_STATUS = {
+    .stat         = PM_STAT_INIT,
+    .smap_mode    = PM_SMAP_8,
+    .prog_mode    = PM_NORMAL,
+    .prog_st_time = 0,
+    .prog_ed_time = 0,
+    .prog_size    = 0,
+    .tx_size      = 0,
+};
+
+//-----------------------------------------------------------------------------
 // GPIO operation (with GPIO check)
 //-----------------------------------------------------------------------------
 static inline int fic_set_gpio(uint32_t set) {
@@ -589,31 +600,54 @@ int fic_prog_init(enum PROG_MODE pm) {
 //-----------------------------------------------------------------------------
 // Selectmap x16 FPGA configuration 
 //-----------------------------------------------------------------------------
-size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
+void _fic_prog_sm16_async_wrap(void) {
+    fic_prog_sm16(PROG_ASYNC_STATUS.prog_data, 
+                PROG_ASYNC_STATUS.prog_size,
+                PROG_ASYNC_STATUS.prog_mode);
+
+    free(PROG_ASYNC_STATUS.prog_data);
+    PROG_ASYNC_STATUS.prog_data = NULL;
+}
+
+int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
+    uint8_t *buf = malloc(sizeof(uint8_t)*size);
+    if (buf == NULL) {
+        PROG_ASYNC_STATUS.stat = PM_STAT_FAIL;
+        return -1;
+    }
+    memcpy(buf, data, size);
+    PROG_ASYNC_STATUS.prog_data = buf;
+    PROG_ASYNC_STATUS.prog_size = size;
+    PROG_ASYNC_STATUS.prog_mode = pm;
+
+    int ret;
+    ret = pthread_create(&PROG_ASYNC_STATUS.prog_th, NULL,
+                         (void *)_fic_prog_sm16_async_wrap, NULL);
+
+    if (ret != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
+
+    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
+    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
+    PROG_ASYNC_STATUS.prog_mode    = pm;
+    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_size    = size;
+    PROG_ASYNC_STATUS.tx_size      = 0;
+
     if (fic_prog_init_sm16() < 0) goto PM_SM16_EXIT_ERROR; // Set pinmode
 
     // Reset FPGA
     if (fic_prog_init(pm) < 0) goto PM_SM16_EXIT_ERROR;
 
-    //if (pm == PM_NORMAL) {
-    //    // Normal mode -> Normal init
-    //    if (fic_prog_init() < 0) goto PM_SM16_EXIT_ERROR;
-
-    //} else if (pm == PM_PR) {
-    //    // PR mode -> without init
-    //    if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
-    //    if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM16_EXIT_ERROR;
-
-    //}
-
     // Configure FPGA
     if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
     size_t i;
-
-    // Transffered byte if specified
-    if (tx_byte != NULL) {
-        *tx_byte = 0;
-    }
 
     time_t t1, t2;
     time(&t1);
@@ -625,9 +659,8 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
         if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
 
 //        DEBUGOUT("[libfic2][DEBUG]:%lx %x\n", i, GET_GPIO);
-        if (tx_byte != NULL) {
-            *tx_byte += 2;
-        }
+
+        PROG_ASYNC_STATUS.tx_size += 2;
 
         // Show progress
         time(&t2);
@@ -664,41 +697,72 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_b
     }
 
     SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
+    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+
     return i;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
+    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+
     return 0;
 }
 
 //-----------------------------------------------------------------------------
 // Selectmap x8 FPGA configuration 
 //-----------------------------------------------------------------------------
-size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte) {
+void _fic_prog_sm8_async_wrap(void) {
+    fic_prog_sm8(PROG_ASYNC_STATUS.prog_data, 
+                PROG_ASYNC_STATUS.prog_size,
+                PROG_ASYNC_STATUS.prog_mode);
+
+    free(PROG_ASYNC_STATUS.prog_data);
+    PROG_ASYNC_STATUS.prog_data = NULL;
+}
+
+int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
+    uint8_t *buf = malloc(sizeof(uint8_t)*size);
+    if (buf == NULL) {
+        PROG_ASYNC_STATUS.stat = PM_STAT_FAIL;
+        return -1;
+    }
+    memcpy(buf, data, size);
+    PROG_ASYNC_STATUS.prog_data = buf;
+    PROG_ASYNC_STATUS.prog_size = size;
+    PROG_ASYNC_STATUS.prog_mode = pm;
+
+    int ret;
+    ret = pthread_create(&PROG_ASYNC_STATUS.prog_th, NULL,
+                         (void *)_fic_prog_sm8_async_wrap, NULL);
+
+    if (ret != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
+
+    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
+    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
+    PROG_ASYNC_STATUS.prog_mode    = pm;
+    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_size    = size;
+    PROG_ASYNC_STATUS.tx_size      = 0;
+
     if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
 
     // Reset FPGA
     if (fic_prog_init(pm) < 0) goto PM_SM8_EXIT_ERROR;
 
-    //if (pm == PM_NORMAL) {
-    //    // Normal mode -> Normal init
-    //    if (fic_prog_init() < 0) goto PM_SM8_EXIT_ERROR;
-
-    //} else if (pm == PM_PR) {
-    //    // PR mode -> without init
-    //    if (fic_set_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
-    //    if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) goto PM_SM8_EXIT_ERROR;
-    //}
-
     // Configure FPGA
     if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     size_t i;
 
-    // Transffered byte if specified
-    if (tx_byte != NULL) {
-        tx_byte = 0;
-    }
- 
     time_t t1, t2;
     time(&t1);
 
@@ -708,9 +772,7 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
         if (fic_set_gpio(d & 0x0000ff00) < 0) goto PM_SM8_EXIT_ERROR;
         if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
 
-        if (tx_byte != NULL) {
-            tx_byte++;
-        }
+        PROG_ASYNC_STATUS.tx_size++;
 
         // Show progress
         time(&t2);
@@ -750,10 +812,16 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_by
     }
 
     SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
+    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+
     return i;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
+    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+
     return 0;
 }
 
@@ -802,7 +870,6 @@ int fic_hls_reset() {
 // Create LOCK_FILE
 //-----------------------------------------------------------------------------
 int gpio_lock() {
-
     printf("[libfic2][DEBUG]: Obtaining GPIO lock...\n");
 
     // Check LOCKFILE
@@ -912,8 +979,8 @@ int fic_gpio_close(int fd_lock) {
 //#define BITFILE "ring_akram.bin"
 //#define BITFILE "RPBT115.bin"
 //#define BITFILE "AURORA.bin"
-//#define BITFILE "fic_top.bin"
-#define BITFILE "mk2_fic_top.bin"
+#define BITFILE "fic_top.bin"
+//#define BITFILE "mk2_fic_top.bin"
 
 void test_fpga_prog() {
     int fd;
@@ -926,12 +993,37 @@ void test_fpga_prog() {
     read(fd, buf, size);
 
     printf("TEST for FPGA configuration\n");
-    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-//    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL, NULL);
+//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL);
+    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL);
     printf("TEST: %d bytes are transffered\n", tx);
 
     close(fd);
     free(buf);
+
+}
+
+void test_fpga_async_prog() {
+    int fd;
+    struct stat st;
+    stat(BITFILE, &st);
+    size_t size = st.st_size;
+    uint8_t *buf = malloc(sizeof(char)*size);
+
+    fd = open(BITFILE, O_RDONLY);
+    read(fd, buf, size);
+    close(fd);
+
+    printf("TEST for FPGA configuration\n");
+//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
+    fic_prog_sm8_async(buf, size, PM_NORMAL);
+    free(buf);
+
+    while(PROG_ASYNC_STATUS.stat != PM_STAT_DONE) {
+        printf("DEBUG: %d\n", PROG_ASYNC_STATUS.tx_size);
+        sleep(1);
+    }
+
+    pthread_join(PROG_ASYNC_STATUS.prog_th, NULL);
 
 }
 
@@ -989,7 +1081,8 @@ void test_rw() {
 int main() {
     int fd = fic_gpio_open();    // Open GPIO
     printf("DEBUG: gpio fd %d \n", fd);
-    test_fpga_prog();
+    test_fpga_async_prog();
+//    test_fpga_prog();
 //    test_rw();
     fic_gpio_close(fd);   // Close GPIO
 

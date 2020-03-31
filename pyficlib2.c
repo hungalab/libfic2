@@ -42,6 +42,39 @@ static PyObject *py_fic_power(PyObject *self, PyObject *args) {
 }
 
 //-----------------------------------------------------------------------------
+static PyObject *py_fic_prog_status(PyObject *self) {
+	return Py_BuildValue("iiillll",
+		PROG_ASYNC_STATUS.stat,
+		PROG_ASYNC_STATUS.smap_mode,
+		PROG_ASYNC_STATUS.prog_mode,
+		PROG_ASYNC_STATUS.prog_st_time,
+		PROG_ASYNC_STATUS.prog_ed_time,
+		PROG_ASYNC_STATUS.prog_size,
+		PROG_ASYNC_STATUS.tx_size
+	);
+}
+
+//-----------------------------------------------------------------------------
+static PyObject *py_fic_prog_sm16_async(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
+
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	int32_t ret = fic_prog_sm16_async(data.buf, data.len, pm);
+	if (ret < 0) {
+		return NULL;
+	}
+
+	PyBuffer_Release(&data);
+
+	return Py_BuildValue("");
+}
+
 static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwargs) {
 	Py_buffer data;
 	int pm = 0;
@@ -52,7 +85,7 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 		return NULL;
 	}
 
-	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm, NULL);
+	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm);
 	if (ret < (uint32_t)data.len) {
 		PyBuffer_Release(&data);
 		return NULL;
@@ -61,6 +94,26 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 	PyBuffer_Release(&data);
 
 	return Py_BuildValue("I", ret);
+}
+
+static PyObject *py_fic_prog_sm8_async(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
+
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	int32_t ret = fic_prog_sm8_async(data.buf, data.len, pm);
+	if (ret < 0) {
+		return NULL;
+	}
+
+	PyBuffer_Release(&data);
+
+	return Py_BuildValue("");
 }
 
 static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -73,7 +126,7 @@ static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwarg
 		return NULL;
 	}
 
-	uint32_t ret = fic_prog_sm8(data.buf, data.len, pm, NULL);
+	uint32_t ret = fic_prog_sm8(data.buf, data.len, pm);
 	if (ret < data.len) {
 		PyBuffer_Release(&data);
 		return NULL;
@@ -185,6 +238,9 @@ static PyMethodDef pyficlib2_methods[] = {
 	{ "get_power",   py_fic_power, METH_NOARGS, "Probe PW_OK singal from FiC board"},
 	{ "prog_sm16",   (PyCFunction) py_fic_prog_sm16, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method"},
 	{ "prog_sm8",    (PyCFunction) py_fic_prog_sm8, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method"},
+	{ "prog_sm16_async",(PyCFunction) py_fic_prog_sm16_async, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method (async)"},
+	{ "prog_sm8_async", (PyCFunction) py_fic_prog_sm8_async, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method (async)"},
+    { "prog_status", (PyCFunction) py_fic_prog_status, METH_NOARGS, "Get Program status"},
 	{ "prog_init",   (PyCFunction) py_fic_prog_init, METH_NOARGS, "Reset FPGA"},
 	{ "read",        (PyCFunction) py_fic_read, METH_VARARGS|METH_KEYWORDS, "Read byte at address"},
 	{ "write",       (PyCFunction) py_fic_write, METH_VARARGS|METH_KEYWORDS, "Write byte at address"},

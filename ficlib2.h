@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/file.h>
@@ -12,6 +13,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 
 //-----------------------------------------------------------------------------
 // Board definition
@@ -292,6 +294,35 @@ enum COMM_PORT_DIR {
     COMM_PORT_RCV = 1,
 };
 
+enum PROG_SMAP_MODE {
+    PM_SMAP_8 = 8,
+    PM_SMAP_16 = 16,
+};
+
+enum PROG_STATUS {
+    PM_STAT_INIT = 0,
+    PM_STAT_PROG = 1,
+    PM_STAT_DONE = 2,
+    PM_STAT_FAIL = 3,
+};
+
+
+//-----------------------------------------------------------------------------
+typedef struct _prog_async_status {
+    pthread_t prog_th;
+
+    enum PROG_STATUS    stat;           // Configuration status
+    enum PROG_SMAP_MODE smap_mode;      // SMAP mode
+    enum PROG_MODE      prog_mode;      // Programing mode (Normal/PR)
+    time_t              prog_st_time;   // Configuration start ts
+    time_t              prog_ed_time;   // Configuration done ts
+    uint8_t*            prog_data;
+    size_t              prog_size;      // Configuration size
+    size_t              tx_size;        // Transfered size
+} prog_async_status;
+
+extern struct _prog_async_status PROG_ASYNC_STATUS;
+
 //-----------------------------------------------------------------------------
 #define __DEBUG__
 
@@ -336,8 +367,12 @@ extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();
 extern int fic_prog_init(enum PROG_MODE pm);
 
-extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
-extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx_byte);
+extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);
+
+extern int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern int fic_prog_async_status();
 
 extern int fic_hls_start();
 extern int fic_hls_reset();
