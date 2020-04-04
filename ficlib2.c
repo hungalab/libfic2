@@ -633,6 +633,7 @@ int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
 size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
+    // For profiler metrics
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
     PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
     PROG_ASYNC_STATUS.prog_mode    = pm;
@@ -652,13 +653,20 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     time_t t1, t2;
     time(&t1);
 
+    uint32_t _d = 0;
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
-        if (fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
-        if (fic_set_gpio(d & 0x00ffff00) < 0) goto PM_SM16_EXIT_ERROR;
-        if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+        if (d == _d) {
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
 
-//        DEBUGOUT("[libfic2][DEBUG]:%lx %x\n", i, GET_GPIO);
+        } else {
+            if (fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+            if (fic_set_gpio(d & 0x00ffff00) < 0) goto PM_SM16_EXIT_ERROR;
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+        }
+
+        _d = d;
 
         PROG_ASYNC_STATUS.tx_size += 2;
 
@@ -747,6 +755,7 @@ int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
 //-----------------------------------------------------------------------------
 size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
+    // For profiler metrics
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
     PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
     PROG_ASYNC_STATUS.prog_mode    = pm;
@@ -766,11 +775,20 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     time_t t1, t2;
     time(&t1);
 
+    uint32_t _d = 0;
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
-        if (fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
-        if (fic_set_gpio(d & 0x0000ff00) < 0) goto PM_SM8_EXIT_ERROR;
-        if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+        if (d == _d) {
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+
+        } else {
+            if (fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            if (fic_set_gpio(d & 0x0000ff00) < 0) goto PM_SM8_EXIT_ERROR;
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+
+        }
+        _d = d;
 
         PROG_ASYNC_STATUS.tx_size++;
 
