@@ -1,5 +1,7 @@
 #include "ficlib2.h"
 
+struct timespec ts = {0, 60L};
+
 //-----------------------------------------------------------------------------
 struct _prog_async_status PROG_ASYNC_STATUS = {
     .stat         = PM_STAT_INIT,
@@ -12,13 +14,28 @@ struct _prog_async_status PROG_ASYNC_STATUS = {
 };
 
 //-----------------------------------------------------------------------------
+// This is a workaround :(
+//-----------------------------------------------------------------------------
+static inline void _wait_awhile() {
+    int i;
+    for (i = 0; i < 15; i++) { 
+        asm("nop");
+    }
+}
+
+static inline int fic_set_gpio_fast(uint32_t set) {
+    SET_GPIO = set;
+    while ((GET_GPIO & set) ^ set) asm("nop");
+}
+
+//-----------------------------------------------------------------------------
 // GPIO operation (with GPIO check)
 //-----------------------------------------------------------------------------
 static inline int fic_set_gpio(uint32_t set) {
     time_t t1, t2;
-    time(&t1);
     SET_GPIO = set;
-    while ((GET_GPIO & set) != set) {
+    time(&t1);
+    while ((GET_GPIO & set) ^ set) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
             fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
@@ -32,9 +49,9 @@ static inline int fic_set_gpio(uint32_t set) {
 
 static inline int fic_clr_gpio(uint32_t set) {
     time_t t1, t2;
-    time(&t1);
     CLR_GPIO = set;
-    while ((GET_GPIO & set) != 0) {
+    time(&t1);
+    while (GET_GPIO & set) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
             fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
@@ -657,14 +674,14 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
         if (d == _d) {
-            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
-            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+            CLR_GPIO = RP_PIN_CCLK;
 
         } else {
-            if (fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
-            if (fic_set_gpio(d & 0x00ffff00) < 0) goto PM_SM16_EXIT_ERROR;
-            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+            CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
+            SET_GPIO = d & 0x00ffff00;
         }
+
+        fic_set_gpio_fast(RP_PIN_CCLK);
 
         _d = d;
 
@@ -779,15 +796,16 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
         if (d == _d) {
-            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
-            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            CLR_GPIO = RP_PIN_CCLK;
 
         } else {
-            if (fic_clr_gpio((~d & 0x0000ff00) | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
-            if (fic_set_gpio(d & 0x0000ff00) < 0) goto PM_SM8_EXIT_ERROR;
-            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            CLR_GPIO = (~d & 0x0000ff00) | RP_PIN_CCLK;
+            SET_GPIO = d & 0x0000ff00;
 
         }
+
+        fic_set_gpio_fast(RP_PIN_CCLK);
+
         _d = d;
 
         PROG_ASYNC_STATUS.tx_size++;
