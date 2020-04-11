@@ -1,5 +1,5 @@
 BIN=ficlib2
-CC=gcc -O3 -g -lpthread
+CC=gcc -O2 -g -lpthread
 
 mk1:
 	make $(BIN)
