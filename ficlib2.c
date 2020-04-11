@@ -14,18 +14,16 @@ struct _prog_async_status PROG_ASYNC_STATUS = {
 };
 
 //-----------------------------------------------------------------------------
-// This is a workaround :(
+// GPIO operation (with GPIO check)
 //-----------------------------------------------------------------------------
-static inline void _wait_awhile() {
-    int i;
-    for (i = 0; i < 15; i++) { 
-        asm("nop");
-    }
-}
-
 static inline int fic_set_gpio_fast(uint32_t set) {
     SET_GPIO = set;
     while ((GET_GPIO & set) ^ set) asm("nop");
+}
+
+static inline int fic_clr_gpio_fast(uint32_t set) {
+    CLR_GPIO = set;
+    while (GET_GPIO & set) asm("nop");
 }
 
 //-----------------------------------------------------------------------------
@@ -674,14 +672,15 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     for (i = 0; i < size; i+=2) {
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
         if (d == _d) {
-            CLR_GPIO = RP_PIN_CCLK;
+            fic_clr_gpio_fast(RP_PIN_CCLK);
+            SET_GPIO = RP_PIN_CCLK;
 
         } else {
             CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
             SET_GPIO = d & 0x00ffff00;
-        }
+            SET_GPIO = (d & 0x00ffff00) | RP_PIN_CCLK;
 
-        fic_set_gpio_fast(RP_PIN_CCLK);
+        }
 
         _d = d;
 
@@ -796,15 +795,14 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     for (i = 0; i < size; i++) {
         uint32_t d = (data[i] << 8);
         if (d == _d) {
-            CLR_GPIO = RP_PIN_CCLK;
+            fic_clr_gpio_fast(RP_PIN_CCLK); // Securely CCLK down
+            SET_GPIO = RP_PIN_CCLK;
 
         } else {
             CLR_GPIO = (~d & 0x0000ff00) | RP_PIN_CCLK;
             SET_GPIO = d & 0x0000ff00;
-
+            SET_GPIO = (d & 0x0000ff00) | RP_PIN_CCLK;
         }
-
-        fic_set_gpio_fast(RP_PIN_CCLK);
 
         _d = d;
 
