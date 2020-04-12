@@ -21,6 +21,8 @@
 // #define FICMK2
 //-----------------------------------------------------------------------------
 
+//#define SHOW_PROGRESS
+
 //-----------------------------------------------------------------------------
 #define GPIO_LOCK_TIMEOUT (30)      // Lockfile timeout
 #define COMM_TIMEOUT (10)           // Communication timeout 

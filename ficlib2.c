@@ -1,7 +1,5 @@
 #include "ficlib2.h"
 
-struct timespec ts = {0, 60L};
-
 //-----------------------------------------------------------------------------
 struct _prog_async_status PROG_ASYNC_STATUS = {
     .stat         = PM_STAT_INIT,
@@ -613,6 +611,47 @@ int fic_prog_init(enum PROG_MODE pm) {
 }
 
 //-----------------------------------------------------------------------------
+// Note: all gpio set/hold timing is very empirical for RPi3B
+// You need adjust values if you change HW
+//-----------------------------------------------------------------------------
+static inline void _gpio_hold(uint32_t out) {
+    int i;
+    for (i = 0; i < 2; i++) SET_GPIO = out;
+}
+
+static inline void _toggle_cclk16() {
+    int i, j;
+    for (i = 0; i < 16; i++) {
+        for (j = 0; j < 2; j++) CLR_GPIO = RP_PIN_CCLK;
+        for (j = 0; j < 2; j++) SET_GPIO = RP_PIN_CCLK;
+    }
+}
+
+static inline void _toggle_cclk12() {
+    int i, j;
+    for (i = 0; i < 12; i++) {
+        for (j = 0; j < 2; j++) CLR_GPIO = RP_PIN_CCLK;
+        for (j = 0; j < 2; j++) SET_GPIO = RP_PIN_CCLK;
+    }
+}
+
+static inline void _toggle_cclk8() {
+    int i, j;
+    for (i = 0; i < 8; i++) {
+        for (j = 0; j < 2; j++) CLR_GPIO = RP_PIN_CCLK;
+        for (j = 0; j < 2; j++) SET_GPIO = RP_PIN_CCLK;
+    }
+}
+
+static inline void _toggle_cclk4() {
+    int i, j;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 2; j++) CLR_GPIO = RP_PIN_CCLK;
+        for (j = 0; j < 2; j++) SET_GPIO = RP_PIN_CCLK;
+    }
+}
+
+//-----------------------------------------------------------------------------
 // Selectmap x16 FPGA configuration 
 //-----------------------------------------------------------------------------
 void _fic_prog_sm16_async_wrap(void) {
@@ -668,37 +707,63 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     time_t t1, t2;
     time(&t1);
 
-    uint32_t _d = 0;
+    uint32_t _d_hi = 0;     // prev data
+    uint32_t _d_low = 0;    // prev data
+
     for (i = 0; i < size; i+=2) {
-        uint32_t d = (data[i+1] << 8 | data[i]) << 8;
-        if (d == _d) {
-            fic_clr_gpio_fast(RP_PIN_CCLK);
-            SET_GPIO = RP_PIN_CCLK;
+        uint32_t d_hi = data[i+1];
+        uint32_t d_low = data[i];
+
+        if (d_hi == _d_hi && d_low == _d_low) {
+            if ((d_hi == data[i+3] && d_low == data[i+2]) && (d_hi == data[i+5] && d_low == data[i+4]) &&
+                (d_hi == data[i+7] && d_low == data[i+6])) {
+                if ((d_hi == data[i+9] && d_low == data[i+8]) && (d_hi == data[i+11] && d_low == data[i+10]) &&
+                    (d_hi == data[i+13] && d_low == data[i+12]) && (d_hi == data[i+15] && d_low == data[i+14])) {
+                        _toggle_cclk8();    // toggle CCLK x8
+                        i+=14;
+
+                } else {
+                    _toggle_cclk4();    // toggle CCLK x4
+                    i+=6;
+
+                }
+
+            } else {
+                fic_clr_gpio_fast(RP_PIN_CCLK);
+                _gpio_hold(RP_PIN_CCLK);
+
+            }
 
         } else {
-            CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
-            SET_GPIO = d & 0x00ffff00;
-            SET_GPIO = (d & 0x00ffff00) | RP_PIN_CCLK;
+            uint32_t db = (d_hi << 8 | d_low) << 8; // ;data[i+1] << 8 | data[i]) << 8;
+            CLR_GPIO = (~db & 0x00ffff00) | RP_PIN_CCLK;
+            SET_GPIO = db & 0x00ffff00;
+            _gpio_hold((db & 0x00ffff00) | RP_PIN_CCLK);
 
         }
 
-        _d = d;
+        _d_hi = d_hi;
+        _d_low = d_low;
 
         PROG_ASYNC_STATUS.tx_size += 2;
 
+#ifdef SHOW_PROGRESS
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
             printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
             t1 = t2;
         }
+#endif
 
-        if (GET_GPIO_PIN(RP_INIT) == 0) {
-            fprintf(stderr,
-                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                    __FILE__, __FUNCTION__, __LINE__);
-            goto PM_SM16_EXIT_ERROR;
-        }
+    }
+
+    // If something happen during send configuration
+    if (GET_GPIO_PIN(RP_INIT) == 0) {
+        fprintf(stderr,
+                "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        goto PM_SM16_EXIT_ERROR;
     }
 
     // Wait until RP_DONE asserted
@@ -768,6 +833,7 @@ int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
     return 0;
 }
 
+
 //-----------------------------------------------------------------------------
 size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
@@ -791,39 +857,68 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     time_t t1, t2;
     time(&t1);
 
-    uint32_t _d = 0;
+    uint32_t _d = 0;    // prev data
     for (i = 0; i < size; i++) {
-        uint32_t d = (data[i] << 8);
+        uint32_t hold_gpio = 0;
+        uint32_t d = data[i];
         if (d == _d) {
-            fic_clr_gpio_fast(RP_PIN_CCLK); // Securely CCLK down
-            SET_GPIO = RP_PIN_CCLK;
+            if ((d == data[i+1]) && (d == data[i+2]) && (d == data[i+3])) {
+                if ((d == data[i+4]) && (d == data[i+5]) && (d == data[i+6]) && (d == data[i+7])) {
+                    if ((d == data[i+8]) && (d == data[i+9]) && (d == data[i+10]) && (d == data[i+11])) {
+                        if ((d == data[i+12]) && (d == data[i+13]) && (d == data[i+14]) && (d == data[i+15])) {
+                            _toggle_cclk16(); // toggle CCLK x16
+                            i+=15;
+
+                        } else {
+                            _toggle_cclk12(); // toggle CCLK x12
+                            i+=11;
+                        }
+
+                    } else {
+                        _toggle_cclk8(); // toggle CCLK x8
+                        i+=7;
+                    }
+
+                } else {
+                    _toggle_cclk4(); // toggle CCLK x4
+                    i+=3;
+                }
+
+            } else {
+                fic_clr_gpio_fast(RP_PIN_CCLK); // Securely CCLK down
+                _gpio_hold(RP_PIN_CCLK);
+
+            }
 
         } else {
-            CLR_GPIO = (~d & 0x0000ff00) | RP_PIN_CCLK;
-            SET_GPIO = d & 0x0000ff00;
-            SET_GPIO = (d & 0x0000ff00) | RP_PIN_CCLK;
+            uint32_t db = (d << 8);
+            CLR_GPIO = (~db & 0x0000ff00) | RP_PIN_CCLK;
+            SET_GPIO = db & 0x0000ff00;
+            _gpio_hold((db & 0x0000ff00) | RP_PIN_CCLK);
+
         }
 
         _d = d;
 
         PROG_ASYNC_STATUS.tx_size++;
 
+#ifdef SHOW_PROGRESS
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
             printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
             t1 = t2;
         }
+#endif
 
-//        usleep(1000);
-//        printf("GPIO=%08x\n", GET_GPIO);
+    }
 
-        if (GET_GPIO_PIN(RP_INIT) == 0) {
-            fprintf(stderr,
-                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                    __FILE__, __FUNCTION__, __LINE__);
-            goto PM_SM8_EXIT_ERROR;
-        }
+    // If something happen during send configuration
+    if (GET_GPIO_PIN(RP_INIT) == 0) {
+        fprintf(stderr,
+                "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        goto PM_SM8_EXIT_ERROR;
     }
 
     // Waitng RP_DONE asserted
