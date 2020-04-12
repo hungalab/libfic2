@@ -691,7 +691,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
     PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
     PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_st_time = clock();
     PROG_ASYNC_STATUS.prog_size    = size;
     PROG_ASYNC_STATUS.tx_size      = 0;
 
@@ -787,14 +787,14 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     SET_ALL_INPUT;
     PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
 
     return i;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
     PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
 
     return 0;
 }
@@ -841,7 +841,7 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
     PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
     PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_st_time = clock();
     PROG_ASYNC_STATUS.prog_size    = size;
     PROG_ASYNC_STATUS.tx_size      = 0;
 
@@ -942,14 +942,14 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     SET_ALL_INPUT;
     PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
 
     return i;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
     PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
 
     return 0;
 }
