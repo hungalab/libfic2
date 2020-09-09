@@ -685,7 +685,97 @@ int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
     return 0;
 }
 
+//-----------------------------------------------------------------------------
 size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
+
+    // For profiler metrics
+    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
+    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
+    PROG_ASYNC_STATUS.prog_mode    = pm;
+    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_size    = size;
+    PROG_ASYNC_STATUS.tx_size      = 0;
+
+    if (fic_prog_init_sm16() < 0) goto PM_SM16_EXIT_ERROR; // Set pinmode
+
+    // Reset FPGA
+    if (fic_prog_init(pm) < 0) goto PM_SM16_EXIT_ERROR;
+
+    // Configure FPGA
+    if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+    size_t i;
+
+    time_t t1, t2;
+    time(&t1);
+
+    uint32_t _d = 0;
+    for (i = 0; i < size; i+=2) {
+        uint32_t d = (data[i+1] << 8 | data[i]) << 8;
+        if (d == _d) {
+            fic_clr_gpio_fast(RP_PIN_CCLK);
+            SET_GPIO = RP_PIN_CCLK;
+
+        } else {
+            CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
+            SET_GPIO = d & 0x00ffff00;
+            SET_GPIO = (d & 0x00ffff00) | RP_PIN_CCLK;
+
+        }
+
+        _d = d;
+
+        PROG_ASYNC_STATUS.tx_size += 2;
+
+        // Show progress
+        time(&t2);
+        if (t2 - t1 > 2) {
+            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            t1 = t2;
+        }
+
+        if (GET_GPIO_PIN(RP_INIT) == 0) {
+            fprintf(stderr,
+                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                    __FILE__, __FUNCTION__, __LINE__);
+            goto PM_SM16_EXIT_ERROR;
+        }
+    }
+
+    // Wait until RP_DONE asserted
+    if (pm == PM_NORMAL) {
+        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        time(&t1);
+        while (GET_GPIO_PIN(RP_DONE) == 0) {
+            time(&t2);
+            if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
+                fprintf(stderr,
+                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                        __FILE__, __FUNCTION__, __LINE__);
+                goto PM_SM16_EXIT_ERROR;
+            }
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+        }
+        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        if (fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
+    }
+
+    SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
+
+    return i;
+
+PM_SM16_EXIT_ERROR:
+    SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
@@ -833,9 +923,99 @@ int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
     return 0;
 }
 
-
 //-----------------------------------------------------------------------------
 size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
+
+    // For profiler metrics
+    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
+    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
+    PROG_ASYNC_STATUS.prog_mode    = pm;
+    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
+    PROG_ASYNC_STATUS.prog_size    = size;
+    PROG_ASYNC_STATUS.tx_size      = 0;
+
+    if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
+
+    // Reset FPGA
+    if (fic_prog_init(pm) < 0) goto PM_SM8_EXIT_ERROR;
+
+    // Configure FPGA
+    if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+    size_t i;
+
+    time_t t1, t2;
+    time(&t1);
+
+    uint32_t _d = 0;
+    for (i = 0; i < size; i++) {
+        uint32_t d = (data[i] << 8);
+        if (d == _d) {
+            fic_clr_gpio_fast(RP_PIN_CCLK); // Securely CCLK down
+            SET_GPIO = RP_PIN_CCLK;
+
+        } else {
+            CLR_GPIO = (~d & 0x0000ff00) | RP_PIN_CCLK;
+            SET_GPIO = d & 0x0000ff00;
+            SET_GPIO = (d & 0x0000ff00) | RP_PIN_CCLK;
+        }
+
+        _d = d;
+
+        PROG_ASYNC_STATUS.tx_size++;
+
+        // Show progress
+        time(&t2);
+        if (t2 - t1 > 2) {
+            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            t1 = t2;
+        }
+
+//        usleep(1000);
+//        printf("GPIO=%08x\n", GET_GPIO);
+
+        if (GET_GPIO_PIN(RP_INIT) == 0) {
+            fprintf(stderr,
+                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                    __FILE__, __FUNCTION__, __LINE__);
+            goto PM_SM8_EXIT_ERROR;
+        }
+    }
+
+    // Waitng RP_DONE asserted
+    if (pm == PM_NORMAL) {
+        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        time(&t1);
+        while (GET_GPIO_PIN(RP_DONE) == 0) {
+            time(&t2);
+            if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
+                fprintf(stderr,
+                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
+                        __FILE__, __FUNCTION__, __LINE__);
+                goto PM_SM8_EXIT_ERROR;
+            }
+            if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+            if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+        }
+        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        if (fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
+    }
+
+    SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
+
+    return i;
+
+PM_SM8_EXIT_ERROR:
+    SET_ALL_INPUT;
+    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
+    PROG_ASYNC_STATUS.prog_ed_time = clock();
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
     PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;

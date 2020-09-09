@@ -75,6 +75,27 @@ static PyObject *py_fic_prog_sm16_async(PyObject *self, PyObject *args, PyObject
 	return Py_BuildValue("");
 }
 
+static PyObject *py_fic_prog_sm16_fast(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
+
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	uint32_t ret = fic_prog_sm16_fast(data.buf, data.len, pm);
+	if (ret < (uint32_t)data.len) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	PyBuffer_Release(&data);
+
+	return Py_BuildValue("I", ret);
+}
+
 static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwargs) {
 	Py_buffer data;
 	int pm = 0;
@@ -85,7 +106,7 @@ static PyObject *py_fic_prog_sm16(PyObject *self, PyObject *args, PyObject *kwar
 		return NULL;
 	}
 
-	uint32_t ret = fic_prog_sm16(data.buf, data.len, pm);
+		uint32_t ret = fic_prog_sm16(data.buf, data.len, pm);
 	if (ret < (uint32_t)data.len) {
 		PyBuffer_Release(&data);
 		return NULL;
@@ -114,6 +135,27 @@ static PyObject *py_fic_prog_sm8_async(PyObject *self, PyObject *args, PyObject 
 	PyBuffer_Release(&data);
 
 	return Py_BuildValue("");
+}
+
+static PyObject *py_fic_prog_sm8_fast(PyObject *self, PyObject *args, PyObject *kwargs) {
+	Py_buffer data;
+	int pm = 0;
+
+	static char *kwd[] = {"data", "progmode", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*i", kwd, &data, &pm)) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	uint32_t ret = fic_prog_sm8_fast(data.buf, data.len, pm);
+	if (ret < data.len) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	PyBuffer_Release(&data);
+
+	return Py_BuildValue("I", ret);
 }
 
 static PyObject *py_fic_prog_sm8(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -238,6 +280,8 @@ static PyMethodDef pyficlib2_methods[] = {
 	{ "get_power",   py_fic_power, METH_NOARGS, "Probe PW_OK singal from FiC board"},
 	{ "prog_sm16",   (PyCFunction) py_fic_prog_sm16, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method"},
 	{ "prog_sm8",    (PyCFunction) py_fic_prog_sm8, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method"},
+	{ "prog_sm16_fast",   (PyCFunction) py_fic_prog_sm16_fast, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method (Fast mode)"},
+	{ "prog_sm8_fast",    (PyCFunction) py_fic_prog_sm8_fast, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method (Fast mode)"},
 	{ "prog_sm16_async",(PyCFunction) py_fic_prog_sm16_async, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method (async)"},
 	{ "prog_sm8_async", (PyCFunction) py_fic_prog_sm8_async, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method (async)"},
     { "prog_status", (PyCFunction) py_fic_prog_status, METH_NOARGS, "Get Program status"},

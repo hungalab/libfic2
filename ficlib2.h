@@ -369,8 +369,10 @@ extern int fic_prog_init_sm16();
 extern int fic_prog_init_sm8();
 extern int fic_prog_init(enum PROG_MODE pm);
 
-extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);
-extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);
+extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);         // Normal configuration mode
+extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);          // Normal configuration mode
+extern size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm);    // Fast configuration mode
+extern size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm);     // Fast configuration mode
 
 extern int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm);
 extern int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm);

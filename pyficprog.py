@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--mode', nargs='?', choices=['8', '16'], default='8', help='Select map mode')
     parser.add_argument('-pr', '--partial', action='store_true', help='Partial reconfigure mode')
+    parser.add_argument('-f', '--fast', action='store_true', help='Fast configuration mode')
     parser.add_argument('bitfile', nargs=1, type=str, help='FPGA configuration *.bit')
     args = parser.parse_args()
 
@@ -68,18 +69,34 @@ if __name__ == '__main__':
             print("INFO: Bitstream is loaded {0}B".format(len(bs)))
             with Opengpio():
                 if args.mode == '8':
-                    if args.partial:
-                        Fic.prog_sm8(data=bs, progmode=1)
+                    if args.fast:
+                        if args.partial:
+                            Fic.prog_sm8_fast(data=bs, progmode=1)
+
+                        else:
+                            Fic.prog_sm8_fast(data=bs, progmode=0)
 
                     else:
-                        Fic.prog_sm8(data=bs, progmode=0)
+                        if args.partial:
+                            Fic.prog_sm8(data=bs, progmode=1)
+
+                        else:
+                            Fic.prog_sm8(data=bs, progmode=0)
 
                 elif args.mode == '16':
-                    if args.partial:
-                        Fic.prog_sm16(data=bs, progmode=1)
+                    if args.fast:
+                        if args.partial:
+                            Fic.prog_sm16_fast(data=bs, progmode=1)
+
+                        else:
+                            Fic.prog_sm16_fast(data=bs, progmode=0)
 
                     else:
-                        Fic.prog_sm16(data=bs, progmode=0)
+                        if args.partial:
+                            Fic.prog_sm16(data=bs, progmode=1)
+
+                        else:
+                            Fic.prog_sm16(data=bs, progmode=0)
 
             print("INFO: FPGA configuration done")
 
