@@ -284,6 +284,12 @@ volatile unsigned *gpio;
 
 //-----------------------------------------------------------------------------
 #define COMM_ADDR_HLS 0x1000
+#define COMM_ADDR_ST  0xffff
+
+//-----------------------------------------------------------------------------
+#define DDR_CMD_WRITE 0x11
+#define DDR_CMD_READ  0x22
+#define DDR_CMD_DEBUG 0xff
 
 //-----------------------------------------------------------------------------
 enum PROG_MODE {
@@ -344,31 +350,20 @@ extern struct _prog_async_status PROG_ASYNC_STATUS;
 // extern inline int fic_clr_gpio(uint32_t set);
 
 extern int fic_comm_setup();
+extern int fic_comm_reset();
 
 extern int fic_done();
 extern int fic_power();
-
-extern void fic_comm_portdir(enum COMM_PORT_DIR dir);
-
-extern int fic_comm_wait_fack_down();
-extern int fic_comm_wait_fack_up();
-extern int fic_comm_wait_freq_down();
-extern int fic_comm_wait_freq_up();
-
-extern int fic_comm_send(uint32_t bus);
-extern int fic_comm_receive();
-
-extern int fic_comm_setaddr(uint16_t addr);
 
 extern int fic_write(uint16_t addr, uint16_t data);
 extern int fic_read(uint16_t addr);
 extern int fic_hls_send(uint8_t *data, size_t size);
 extern int fic_hls_receive(uint8_t *buf, size_t size);
 
-extern int fic_prog_init_sm16();
-extern int fic_prog_init_sm8();
-extern int fic_prog_init(enum PROG_MODE pm);
+extern int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr);            // Write to DDR module
+extern int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr);             // Read from DDR module
 
+extern int fic_prog_init(enum PROG_MODE pm);
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);         // Normal configuration mode
 extern size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm);          // Normal configuration mode
 extern size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm);    // Fast configuration mode
@@ -378,8 +373,9 @@ extern int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm);
 extern int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm);
 extern int fic_prog_async_status();
 
-extern int fic_hls_start();
-extern int fic_hls_reset();
+extern int fic_comm_reset();    // FiC I/O module reset
+extern int fic_hls_start();     // Send HLS module start
+extern int fic_hls_reset();     // Send HLS module reset
 
 extern int fic_gpio_open();
 extern int fic_gpio_close(int fd_lock);

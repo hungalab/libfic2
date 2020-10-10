@@ -76,7 +76,7 @@ pyficlib2.so is a python binding version of ficlib2. (please refer pyficlibtest.
 
 # APIs
 
-## General
+## General functions
 
 ### int fic_gpio_open()
 - Open GPIO and creates LOCKFILE
@@ -93,28 +93,31 @@ pyficlib2.so is a python binding version of ficlib2. (please refer pyficlibtest.
 ### int fic_done()
 - Probe DONE singal from FPGA
 
+### int fic_comm_reset()
+- Reset FiC I/O interface
+
 ----
 
-## FiC FPGA programmer
+## FiC FPGA programmer functions
 
 ### size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x16 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
 - Progress can observe by *tx
-- return == 0 is error
+- return == -1 is error
 
 ### size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm, size_t *tx)
 - Program FiC FPGA by SelectMap x8 mode 
 - PROG_MODE is reset PROG_NORMAL or PROG_PR (Partial reconfiguration)
 - Progress can observe by *tx
-- return == 0 is error
+- return == -1 is error
 
 ### void fic_prog_init()
-- Invoke FPGA init
+- Invoke FPGA init (Reset FPGA)
 
 ----
 
-## FiC General Read Write I/F
+## FiC General Read Write I/F functions
 Note: The interface available after FiCSW FPGA programmed.
 
 ### int fic_write(uint16_t addr, uint16_t data)
@@ -127,7 +130,8 @@ Note: The interface available after FiCSW FPGA programmed.
 
 ----
 
-## FiC HLS module communication
+## FiC HLS module communication functions
+Note: The interface available after FiCSW FPGA programmed.
 
 ### void fic_hls_reset()
 - Send reset HLS reset command
@@ -143,6 +147,14 @@ Note: The interface available after FiCSW FPGA programmed.
 ### int fic_hls_receive(uint8_t *buf, size_t count)
 - Receive size bytes of *data from HLS module via 4bit interface
 - return -1 and buf == NULL is error.
+
+### int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr)
+- Write to data to DDR module
+- Size and addr must be aligned to 4B (32bit)
+
+### int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr);
+- Read data from DDR module
+- Size and addr must be aligned to 4B (32bit)
 
 ----
 

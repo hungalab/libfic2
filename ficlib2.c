@@ -110,7 +110,7 @@ int fic_power() {
 }
 
 //-----------------------------------------------------------------------------
-int fic_comm_setup() {
+inline int fic_comm_setup() {
     int i;
     SET_ALL_INPUT;
 
@@ -134,7 +134,24 @@ int fic_comm_setup() {
     return 0;
 }
 
-void fic_comm_portdir(enum COMM_PORT_DIR dir) {
+//-----------------------------------------------------------------------------
+// DESC: Reset I/F FSM
+//-----------------------------------------------------------------------------
+int fic_comm_reset() {
+    if (fic_comm_setup() < 0) return -1;
+
+    // RREQ dessert
+    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+
+    // STB assert
+    if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
+
+    return 0;
+}
+//-----------------------------------------------------------------------------
+// DESC: Change RPi-FiC I/F transfer direction
+//-----------------------------------------------------------------------------
+static inline void fic_comm_portdir(enum COMM_PORT_DIR dir) {
     int i;
     if (dir == COMM_PORT_SND) {
         for (i = RP_DATA_LOW; i <= RP_DATA_TOP; i++ ) {
@@ -148,7 +165,10 @@ void fic_comm_portdir(enum COMM_PORT_DIR dir) {
     }
 }
 
-int fic_comm_wait_fack_down() {
+//-----------------------------------------------------------------------------
+// DESC: Wait until fack signal is down
+//-----------------------------------------------------------------------------
+static inline int fic_comm_wait_fack_down() {
     time_t t1, t2;
     time(&t1);
     while (GET_GPIO_PIN(RP_FACK) == 1) {
@@ -163,7 +183,18 @@ int fic_comm_wait_fack_down() {
     return 0;
 }
 
-int fic_comm_wait_fack_up() {
+static inline int fic_comm_wait_fack_down_notimeout() {
+    while (GET_GPIO_PIN(RP_FACK) == 1) {
+        asm("nop");
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// DESC: Wait until fack signal is up
+//-----------------------------------------------------------------------------
+static inline int fic_comm_wait_fack_up() {
     time_t t1, t2;
     time(&t1);
     while (GET_GPIO_PIN(RP_FACK) == 0) {
@@ -178,7 +209,17 @@ int fic_comm_wait_fack_up() {
     return 0;
 }
 
-int fic_comm_wait_freq_down() {
+static inline int fic_comm_wait_fack_up_notimeout() {
+    while (GET_GPIO_PIN(RP_FACK) == 0) {
+        asm("nop");
+    }
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// DESC: Wait until freq signal is down
+//-----------------------------------------------------------------------------
+static inline int fic_comm_wait_freq_down() {
     time_t t1, t2;
     time(&t1);
     while (GET_GPIO_PIN(RP_FREQ) == 1) {
@@ -193,7 +234,18 @@ int fic_comm_wait_freq_down() {
     return 0;
 }
 
-int fic_comm_wait_freq_up() {
+static inline int fic_comm_wait_freq_down_notimeout() {
+    while (GET_GPIO_PIN(RP_FREQ) == 1) {
+        asm("nop");
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// DESC: Wait until freq signal is up
+//-----------------------------------------------------------------------------
+static inline int fic_comm_wait_freq_up() {
     time_t t1, t2;
     time(&t1);
     while (GET_GPIO_PIN(RP_FREQ) == 0) {
@@ -208,7 +260,18 @@ int fic_comm_wait_freq_up() {
     return 0;
 }
 
-int fic_comm_send(uint32_t bus) {
+static inline int fic_comm_wait_freq_up_notimeout() {
+    while (GET_GPIO_PIN(RP_FREQ) == 0) {
+        asm("nop");
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// DESC: Send single word data
+//-----------------------------------------------------------------------------
+static inline int fic_comm_send(uint32_t bus) {
 #ifndef FICMK2
     // Clr RSTB and DATA bus
     if (fic_clr_gpio(RP_PIN_RSTB |
@@ -249,8 +312,35 @@ int fic_comm_send(uint32_t bus) {
     return 0;
 }
 
-//uint8_t fic_comm_receive() {
-int fic_comm_receive() {
+//-----------------------------------------------------------------------------
+// DESC: Send single word data (Fast ver)
+//-----------------------------------------------------------------------------
+static inline int fic_comm_send_fast(uint32_t bus) {
+    int ret = 0;
+
+    // Clr RSTB and DATA bus
+#ifndef FICMK2
+    ret |= fic_clr_gpio(RP_PIN_RSTB | RP_PIN_DATA7 | RP_PIN_DATA6 |
+                        RP_PIN_DATA5 | RP_PIN_DATA4);
+
+#else
+    ret |= fic_clr_gpio(RP_PIN_RSTB |
+                     RP_PIN_DATA0 | RP_PIN_DATA1 | RP_PIN_DATA2 | RP_PIN_DATA3 |
+                     RP_PIN_DATA4 | RP_PIN_DATA5 | RP_PIN_DATA6 | RP_PIN_DATA7 |
+                     RP_PIN_DATA8 | RP_PIN_DATA9 | RP_PIN_DATA10 | RP_PIN_DATA11 |
+                     RP_PIN_DATA12 | RP_PIN_DATA13 | RP_PIN_DATA14 | RP_PIN_DATA15) < 0)
+
+#endif
+
+    ret |= fic_set_gpio_fast(RP_PIN_RSTB | bus);
+    ret |= fic_comm_wait_fack_up_notimeout();
+    ret |= fic_clr_gpio_fast(RP_PIN_RSTB);
+    //ret |= fic_comm_wait_fack_down_notimeout();         // Omit check
+
+    return ret;
+}
+
+static inline int fic_comm_receive() {
     if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
     if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
 
@@ -279,6 +369,25 @@ int fic_comm_receive() {
     return (int) rcv;
 }
 
+static inline int fic_comm_receive_fast(uint32_t *rcv) {
+    int ret = 0;
+
+    ret |= fic_clr_gpio_fast(RP_PIN_RSTB);
+    ret |= fic_set_gpio_fast(RP_PIN_RSTB);
+    ret |= fic_comm_wait_fack_up_notimeout();
+
+#ifndef FICMK2
+    *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xf;
+#else
+    *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xffff;
+#endif
+
+    ret |= fic_clr_gpio_fast(RP_PIN_RSTB);
+//    ret |= fic_comm_wait_fack_down();         // Omit check
+
+    return ret;
+}
+
 int fic_comm_setaddr(uint16_t addr) {
 #ifndef FICMK2
     // Send 16bit high-high address
@@ -303,9 +412,9 @@ int fic_comm_setaddr(uint16_t addr) {
 }
 
 //-----------------------------------------------------------------------------
-// Write a byte via 4bit interface
+// Write fic register via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_write(uint16_t addr, uint16_t data) {
+inline int fic_write(uint16_t addr, uint16_t data) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
@@ -341,9 +450,9 @@ int fic_write(uint16_t addr, uint16_t data) {
 }
 
 //-----------------------------------------------------------------------------
-// Read a byte via 4bit interface
+// Read fic register via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_read(uint16_t addr) {
+inline int fic_read(uint16_t addr) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
@@ -391,34 +500,74 @@ int fic_read(uint16_t addr) {
 // Transfer bytes via 4bit interface
 // Modify 2019.11.30: Make the function send each 1B on *buf via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_send(uint8_t *data, size_t size) {
+static inline int _fic_hls_comm_initiate(int cmd) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
     // RREQ assert
+    DEBUGOUT("DEBUG: RREQ assert\n");
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 //    if (fic_comm_wait_freq_up() < 0) return -1;
 
     // Send command
-    if (fic_comm_send(COMM_CMD_WRITE << RP_DATA_LOW) < 0) return -1;
+    DEBUGOUT("DEBUG: Send command\n");
+    if (fic_comm_send(cmd << RP_DATA_LOW) < 0) return -1;
 
     // Set address at HLS module entry point 0x1000
+    DEBUGOUT("DEBUG: Send addr\n");
     if (fic_comm_setaddr(COMM_ADDR_HLS) < 0) return -1;
 
-    size_t i;
-    for (i = 0; i < size; i++) {
-        // Send 4bit high data
-        if (fic_comm_send(((*(data+i) & 0xf0) >> 4) << RP_DATA_LOW) < 0) return -1;
-        // Send 4bit low data
-        if (fic_comm_send((*(data+i) & 0x0f) << RP_DATA_LOW) < 0) return -1;
+    // Change port direction if cmd is READ
+    if (cmd == COMM_CMD_READ) {
+        // Change port direction
+        fic_comm_portdir(COMM_PORT_RCV);
     }
 
+    return 0;
+}
+
+static inline int _fic_hls_comm_terminate() {
     // RREQ dessert
     //if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB | COMM_DATABUS_MASK) < 0) return -1;
-    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
+    if (fic_clr_gpio(RP_PIN_RREQ | RP_PIN_RSTB) < 0) return -1;
     if (fic_comm_wait_freq_down() < 0) return -1;
 
     SET_ALL_INPUT;
+ 
+    return 0;
+}
+
+static inline int _fic_hls_send_bytes(uint8_t *data, size_t size) {
+    size_t i;
+    int ret = 0;
+
+    for (i = 0; i < size; i++) {
+        ret |= fic_comm_send_fast(((*(data+i) & 0xf0) >> 4) << RP_DATA_LOW);  // 4bit high
+        ret |= fic_comm_send_fast((*(data+i) & 0x0f) << RP_DATA_LOW);         // 4bit low
+
+        if ((i % (1024*1024)) == 0) {
+            printf("INFO %s(): Send %d bytes\n", __FUNCTION__, i);
+        }
+    }
+
+    if (ret < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_send_bytes failed at %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    return 0;
+}
+
+inline int fic_hls_send(uint8_t *data, size_t size) {
+    // Begin send to HLS
+    if (_fic_hls_comm_initiate(COMM_CMD_WRITE) < 0) return -1;
+
+    // Send Data
+    if (_fic_hls_send_bytes(data, size) < 0) return -1;
+
+    // End send to HLS
+    if (_fic_hls_comm_terminate() < 0) return -1;
  
     return 0;
 }
@@ -427,50 +576,165 @@ int fic_hls_send(uint8_t *data, size_t size) {
 // Receive bytes via 4bit interface
 // Modify 2019.11.30: Make the function receive each 1B on *buf via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_receive(uint8_t *buf, size_t size) {
-    if (fic_comm_setup() < 0) return -1;
-    fic_comm_portdir(COMM_PORT_SND);
+static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
+    size_t i;
+    int ret = 0;
 
-    // RREQ assert
-    if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
- //   if (fic_comm_wait_freq_up() < 0) return -1;
+#ifndef FICMK2
+    // for mk1
+    // mk2 has 4bit word width = 0.5bytes at once
 
-    // Send command
-    if (fic_comm_send(COMM_CMD_READ << RP_DATA_LOW) < 0) {
-        printf("FAILED at %d\n", __LINE__);
+    for (i = 0; i < size; i++) {
+        int rcv = 0;
+        uint32_t rvh, rvl;
+
+        // Receive Low 4bit
+        ret |= fic_comm_receive_fast(&rvh);
+
+        // Receive High 4bit
+        ret |= fic_comm_receive_fast(&rvl);
+
+        // For mk1 last 4bit is valid in rvh and rvl 
+        *(data+i) = ((rvh << 4) | rvl) & 0xff;
+
+        if ((i % (1024*1024)) == 0) {
+            printf("INFO %s(): Receive %d bytes\n", __FUNCTION__, i);
+        }
+    }
+
+#else
+    // for mk2 
+    // mk2 has 16bit word width = 2bytes at once
+
+#endif
+
+    if (ret < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: fic_comm_receive_bytes failed at %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
 
-    // Set address
-    if (fic_comm_setaddr(COMM_ADDR_HLS) < 0) return -1;
+    return 0;
+}
 
-    // Change port direction
-    fic_comm_portdir(COMM_PORT_RCV);
+inline int fic_hls_receive(uint8_t *buf, size_t size) {
+    // Begin receive data from HLS
+    if (_fic_hls_comm_initiate(COMM_CMD_READ) < 0) return -1;
 
-    size_t i;
-    for (i = 0; i < size; i++) {
-        int rcv = 0;
-        uint8_t rvh, rvl;
+    // Receive data
+    if(_fic_hls_receive_bytes(buf, size) < 0) return -1;
 
-        // Receive Low 4bit
-        rcv = fic_comm_receive(); if (rcv < 0) return -1;
-        rvh = rcv & 0x0f;
+    // Begin receive data from HLS
+    if (_fic_hls_comm_terminate() < 0) return -1;
 
-        // Receive High 4bit
-        rcv = fic_comm_receive(); if (rcv < 0) return -1;
-        rvl = rcv & 0x0f;
+    return 0;
+}
 
-        *(buf+i) = (rvh << 4) | rvl;
-        //*(buf+i) = rvh;
+//-----------------------------------------------------------------------------
+// Write data to DDR module (rasddr) via RPI 4bit interface
+//-----------------------------------------------------------------------------
+int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr) {
+    uint32_t cmd[3];
+
+    cmd[0] = DDR_CMD_WRITE;
+    cmd[1] = addr;
+    cmd[2] = size;
+
+    // Initiate communication port
+    if (_fic_hls_comm_initiate(COMM_CMD_WRITE) < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
     }
 
-    // RREQ dessert
-    if (fic_clr_gpio(RP_PIN_RREQ) < 0) return -1;
-    if (fic_comm_wait_freq_down() < 0) return -1;
+    // Send cmd
+    if(_fic_hls_send_bytes((uint8_t *)&cmd, 12) < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
 
-    SET_ALL_INPUT;
+    // Send data
+    if (_fic_hls_send_bytes(data, size) < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
 
-    return i;
+    // Terminate communication port
+    if (_fic_hls_comm_terminate() < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// Receive bytes via 4bit interface
+//-----------------------------------------------------------------------------
+int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr) {
+    uint32_t cmd[3];
+
+    cmd[0] = DDR_CMD_READ;
+    cmd[1] = addr;
+    cmd[2] = size;
+
+    // Send cmd to DDR module
+    if (fic_hls_send((uint8_t *)&cmd, 12) < 0) {  // cmd
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    // Initiate communication port
+    if (_fic_hls_comm_initiate(COMM_CMD_READ) < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    // Receive bytes from DDR module
+    if (_fic_hls_receive_bytes(buf, size) < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    // Terminate communication port
+    if (_fic_hls_comm_terminate() < 0) {
+        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
+                __FILE__, __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+//    fic_hls_send((uint8_t *)&cmd, 12);   // cmd
+//    fic_hls_receive(buf, size);          // size of data
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+// Receive bytes via 4bit interface
+//-----------------------------------------------------------------------------
+int fic_hls_ddr_debug(uint32_t addr, size_t size, uint8_t *buf) {
+    int ret = 0;
+
+    uint8_t *pa = (uint8_t *)&addr;
+    uint8_t *ps = (uint8_t *)&size;
+
+    uint8_t cmd[] = {
+        0x00, 0x00, 0x00, 0x00,
+        pa[0], pa[1], pa[2], pa[3],     // address
+        ps[0], ps[1], ps[2], ps[3],     // length
+    };
+
+    ret = fic_hls_send((uint8_t *)&cmd, 12);   // CMD
+    ret = fic_hls_receive(buf, size);             // size of data
+
+    if (ret < 0) return -1;
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -1135,6 +1399,8 @@ PM_SM8_EXIT_ERROR:
 }
 
 //-----------------------------------------------------------------------------
+// DESC: Send start hls
+//-----------------------------------------------------------------------------
 int fic_hls_start() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
@@ -1155,6 +1421,9 @@ int fic_hls_start() {
     return 0;
 }
 
+//-----------------------------------------------------------------------------
+// DESC: Send reset hls
+//-----------------------------------------------------------------------------
 int fic_hls_reset() {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
@@ -1279,123 +1548,4 @@ int fic_gpio_close(int fd_lock) {
     return 0;
 }
 
-#ifndef SHARED_LIB
-//-----------------------------------------------------------------------------
-// TEST CODE
-//-----------------------------------------------------------------------------
-//#define BITFILE "ring_8bit.bin"
-//#define BITFILE "ring_4bit.bin"
-//#define BITFILE "ring_akram.bin"
-//#define BITFILE "RPBT115.bin"
-//#define BITFILE "AURORA.bin"
-#define BITFILE "fic_top.bin"
-//#define BITFILE "mk2_fic_top.bin"
-
-void test_fpga_prog() {
-    int fd;
-    struct stat st;
-    stat(BITFILE, &st);
-    size_t size = st.st_size;
-    uint8_t *buf = malloc(sizeof(char)*size);
-
-    fd = open(BITFILE, O_RDONLY);
-    read(fd, buf, size);
-
-    printf("TEST for FPGA configuration\n");
-//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL);
-    size_t tx = fic_prog_sm8(buf, size, PM_NORMAL);
-    printf("TEST: %d bytes are transffered\n", tx);
-
-    close(fd);
-    free(buf);
-
-}
-
-void test_fpga_async_prog() {
-    int fd;
-    struct stat st;
-    stat(BITFILE, &st);
-    size_t size = st.st_size;
-    uint8_t *buf = malloc(sizeof(char)*size);
-
-    fd = open(BITFILE, O_RDONLY);
-    read(fd, buf, size);
-    close(fd);
-
-    printf("TEST for FPGA configuration\n");
-//    size_t tx = fic_prog_sm16(buf, size, PM_NORMAL, NULL);
-    fic_prog_sm8_async(buf, size, PM_NORMAL);
-    free(buf);
-
-    while(PROG_ASYNC_STATUS.stat != PM_STAT_DONE) {
-        printf("DEBUG: %d\n", PROG_ASYNC_STATUS.tx_size);
-        sleep(1);
-    }
-
-    pthread_join(PROG_ASYNC_STATUS.prog_th, NULL);
-
-}
-
-void test_rw() {
-    uint16_t addr = 0xffff;
-    uint16_t data = 'B';
-    int ret = 0;
-
-    printf("TEST write:\n");
-    ret = fic_write(addr, data);
-    if (ret < 0) {
-        printf("[libfic2][DEBUG]: ERROR at fic_write\n");
-    }
-
-    printf("TEST read:\n");
-    ret = fic_read(addr);
-    if (ret < 0) {
-        printf("[libfic2][DEBUG]: ERROR at fic_read\n");
-    }
-    uint8_t rcv = ret;
-    printf("TEST RW write=%x, read=%x result=%s\n", data, rcv, data == rcv ? "PASS" : "FAIL");
-
-    printf("TEST read:\n");
-    ret = fic_read(0xfffa);
-    if (ret < 0) {
-        printf("[libfic2][DEBUG]: ERROR at fic_read\n");
-    }
-    printf("TEST read=%x\n", ret);
-
-//    // HLS logic reset
-//    printf("HLS module reset\n");
-//    fic_hls_reset();
-//    printf("HLS module start\n");
-//    fic_hls_start();
-//
-//    // Multi byte transfer
-//    addr = 0xffff;
-//    addr = 0x1000;
-//    uint8_t list = 0x02;
-//    uint8_t buf[16] = {0};
-//
-//    printf("HLS module write at %x\n", addr);
-//    fic_hls_send(&list, 1);
-//
-//    printf("HLS module read at %x\n", addr);
-//    fic_hls_receive(16, buf);
-//    printf("[libfic2][DEBUG]: read=");
-//    for (int i = 0; i < 16; i++) {
-//        printf("%x ", buf[i]);
-//    }
-//    printf("\n");
-
-}
-//-----------------------------------------------------------------------------
-int main() {
-    int fd = fic_gpio_open();    // Open GPIO
-    printf("DEBUG: gpio fd %d \n", fd);
-    test_fpga_async_prog();
-//    test_fpga_prog();
-//    test_rw();
-    fic_gpio_close(fd);   // Close GPIO
-
-}
-
-#endif
 //-----------------------------------------------------------------------------
