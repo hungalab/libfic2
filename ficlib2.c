@@ -328,7 +328,7 @@ static inline int fic_comm_send_fast(uint32_t bus) {
                      RP_PIN_DATA0 | RP_PIN_DATA1 | RP_PIN_DATA2 | RP_PIN_DATA3 |
                      RP_PIN_DATA4 | RP_PIN_DATA5 | RP_PIN_DATA6 | RP_PIN_DATA7 |
                      RP_PIN_DATA8 | RP_PIN_DATA9 | RP_PIN_DATA10 | RP_PIN_DATA11 |
-                     RP_PIN_DATA12 | RP_PIN_DATA13 | RP_PIN_DATA14 | RP_PIN_DATA15) < 0)
+                     RP_PIN_DATA12 | RP_PIN_DATA13 | RP_PIN_DATA14 | RP_PIN_DATA15);
 
 #endif
 
@@ -745,6 +745,7 @@ int fic_prog_init_sm16() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
+
 #ifndef FICMK2
         if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
             SET_INPUT(i);
@@ -782,7 +783,15 @@ int fic_prog_init_sm16() {
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
 #endif
+
     }
+
+#ifdef FICMK2
+    // Set bus switch to FPGA configuration mode
+    SET_OUTPUT(RP_CFSEL);
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+#endif
 
     return 0;
 }
@@ -795,6 +804,7 @@ int fic_prog_init_sm8() {
     SET_ALL_INPUT;
 
     for (i = 0; i <= GPIO_PIN_MAX; i++) {
+
 #ifndef FICMK2
         if (i == RP_PWOK || i == RP_INIT || i == RP_DONE || i == RP_G_CKSEL) {
             SET_INPUT(i);
@@ -828,7 +838,15 @@ int fic_prog_init_sm8() {
             if (fic_clr_gpio(0x01 << i) < 0) return -1; // Negate
         }
 #endif
+
     }
+
+#ifdef FICMK2
+    // Set bus switch to FPGA configuration mode
+    SET_OUTPUT(RP_CFSEL);
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+#endif
 
     return 0;
 }
@@ -837,6 +855,13 @@ int fic_prog_init_sm8() {
 // FPGA Init
 //-----------------------------------------------------------------------------
 int fic_prog_init(enum PROG_MODE pm) {
+
+#ifdef FICMK2
+    SET_OUTPUT(RP_CFSEL);
+    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
+    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+#endif
+
     // Pin setup for FPGA Init
     SET_INPUT(RP_PROG_B); SET_OUTPUT(RP_PROG_B);
     SET_INPUT(RP_CSI_B); SET_OUTPUT(RP_CSI_B);
@@ -845,14 +870,8 @@ int fic_prog_init(enum PROG_MODE pm) {
     // Set disabled pins
     if (fic_set_gpio(RP_PIN_PROG_B | RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;
 
-#ifdef FICMK2
-    SET_OUTPUT(RP_CFSEL);
-    if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
-    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
-#endif
-
+    // Partial reconfiguration mode
     if (pm == PM_PR) {
-        // Partial reconfiguration mode
         if (fic_clr_gpio(RP_PIN_CSI_B | RP_PIN_RDWR_B) < 0) return -1;  // Assert
         return 0;
     }

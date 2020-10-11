@@ -9,7 +9,9 @@ mk1:
 
 mk2:
 	make libfic2.so CFLAGS=-DFICMK2
-	make pyficlib2.so
+	make pyficlib2.so CFLAGS=-DFICMK2
+	make testddr CFLAGS=-DFICMK2
+	make testprog CFLAGS=-DFICMK2
 
 # all:
 # 	make $(BIN)
@@ -22,15 +24,18 @@ $(BIN): ficlib2.o
 	$(CC) $(CFLAGS) $? -o $(BIN)
 
 libfic2.so: ficlib2.c
-	$(CC) $? -shared -DSHARED_LIB -o $@
+	$(CC) $(CFLAGS) $? -shared -DSHARED_LIB -o $@
 
 pyficlib2.so: pyficlib2.c ficlib2.o
-	$(CC) $? -shared -I/usr/include/python3.5 -o $@
+	$(CC) $(CFLAGS) $? -shared -I/usr/include/python3.5 -o $@
 
 #------------------------------------------------------------------------------
 # Test scripts
 #------------------------------------------------------------------------------
 testddr: testddr.o ficlib2.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+testprog: testprog.o ficlib2.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 #------------------------------------------------------------------------------
