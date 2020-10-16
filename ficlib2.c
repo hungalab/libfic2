@@ -125,11 +125,11 @@ inline int fic_comm_setup() {
         }
     }
 
-#ifdef FICMK2
-    SET_OUTPUT(RP_CFSEL);
-    if (fic_clr_gpio(RP_PIN_CFSEL) < 0) return -1;  // Clear CFG mode
-    printf("INFO: RP_CFSEL is clr for FiC Mark2 board\n");
-#endif
+//#ifdef FICMK2
+//    //SET_OUTPUT(RP_CFSEL);
+//    //if (fic_clr_gpio(RP_PIN_CFSEL) < 0) return -1;  // Clear CFG mode
+//    //printf("INFO: RP_CFSEL is clr for FiC Mark2 board\n");
+//#endif
 
     return 0;
 }
@@ -379,7 +379,12 @@ static inline int fic_comm_receive_fast(uint32_t *rcv) {
 #ifndef FICMK2
     *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xf;
 #else
+    // Note: mk2's 16bit I/F is unstable. so read it twice then check.
+    (GET_GPIO);
+    (GET_GPIO);
+    (GET_GPIO);
     *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xffff;
+
 #endif
 
     ret |= fic_clr_gpio_fast(RP_PIN_RSTB);
@@ -387,6 +392,35 @@ static inline int fic_comm_receive_fast(uint32_t *rcv) {
 
     return ret;
 }
+
+//static inline int fic_comm_receive_debug(uint32_t *rcv) {
+//    *rcv = 0;
+//
+//    if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
+//    if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
+//
+//    if (fic_comm_wait_fack_up() < 0) {
+//        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
+//                  __FILE__, __FUNCTION__, __LINE__);
+//        return -1;
+//    }
+//
+//#ifndef FICMK2
+//    *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xff;
+//#else
+//    *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xffff;
+//#endif
+//
+//    if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
+//
+//    if (fic_comm_wait_fack_down() < 0) {
+//        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
+//                  __FILE__, __FUNCTION__, __LINE__);
+//        return -1;
+//    }
+//
+//    return 0;
+//}
 
 int fic_comm_setaddr(uint16_t addr) {
 #ifndef FICMK2
@@ -557,19 +591,19 @@ static inline int _fic_hls_send_bytes(uint8_t *data, size_t size) {
     // Transfer 2B data each time
 
     if (size < 2) {
-        fprintf(stderr, "[libfic2][ERROR]: Size is too small (size should more than 2 byte at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        fprintf(stderr, "[libfic2][ERROR]: %d is too small (size should more than 2 byte at %s %s %d\n",
+                size, __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
 
     if (size % 2 != 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Size is must be 2B aligned size. at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        fprintf(stderr, "[libfic2][ERROR]: %d is not 2B aligned size. at %s %s %d\n",
+                size, __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
 
     for (i = 0; i < size; i+=2) {
-        ret |= fic_comm_send_fast((*(data+i) << 8) | (*(data+i+1)) << RP_DATA_LOW);  // 8bit + 8bit
+        ret |= fic_comm_send_fast((*(data+i) | *(data+i+1) << 8) << RP_DATA_LOW);  // 8bit + 8bit
         if ((i % (1024*1024)) == 0) {
             printf("INFO %s(): Send %d bytes\n", __FUNCTION__, i);
         }
@@ -634,26 +668,28 @@ static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
     // mk2 has 16bit word width = 2bytes at once
 
     if (size < 2) {
-        fprintf(stderr, "[libfic2][ERROR]: Size is too small (size should more than 2 byte at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        fprintf(stderr, "[libfic2][ERROR]: %d is too small (size should more than 2 byte at %s %s %d\n",
+                size, __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
 
     if (size % 2 != 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Size is must be 2B aligned size. at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        fprintf(stderr, "[libfic2][ERROR]: %d is must be 2B aligned size. at %s %s %d\n",
+                size, __FILE__, __FUNCTION__, __LINE__);
         return -1;
     }
 
     for (i = 0; i < size; i+=2) {
-        uint32_t rv;
+        uint32_t rv = 0;
 
         // Receive 16bit
         ret |= fic_comm_receive_fast(&rv);
 
         // For mk2 received 2B at once
-        *(data+i)   = (rv & 0xffff0000) >> 16;
-        *(data+i+1) = (rv & 0x0000ffff) >> 0;
+        *(data+i)   = (rv & 0x00ff) >> 0;
+        *(data+i+1) = (rv & 0xff00) >> 8;
+
+        //printf("%d: %x ", __LINE__, rv);
 
 
         if ((i % (1024*1024)) == 0) {
@@ -773,20 +809,16 @@ int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr) {
 //-----------------------------------------------------------------------------
 // Receive bytes via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_ddr_debug(uint32_t addr, size_t size, uint8_t *buf) {
+int fic_hls_ddr_debug(uint8_t *buf, size_t size, uint32_t addr) {
     int ret = 0;
+    uint32_t cmd[3];
 
-    uint8_t *pa = (uint8_t *)&addr;
-    uint8_t *ps = (uint8_t *)&size;
-
-    uint8_t cmd[] = {
-        0x00, 0x00, 0x00, 0x00,
-        pa[0], pa[1], pa[2], pa[3],     // address
-        ps[0], ps[1], ps[2], ps[3],     // length
-    };
+    cmd[0] = DDR_CMD_DEBUG;
+    cmd[1] = addr;
+    cmd[2] = size;
 
     ret = fic_hls_send((uint8_t *)&cmd, 12);   // CMD
-    ret = fic_hls_receive(buf, size);             // size of data
+    ret = fic_hls_receive(buf, 12);          // size of data
 
     if (ret < 0) return -1;
     return 0;

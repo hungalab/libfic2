@@ -287,9 +287,9 @@ volatile unsigned *gpio;
 #define COMM_ADDR_ST  0xffff
 
 //-----------------------------------------------------------------------------
-#define DDR_CMD_WRITE 0x01
-#define DDR_CMD_READ  0x02
-#define DDR_CMD_DEBUG 0x0f
+#define DDR_CMD_WRITE 0x0001
+#define DDR_CMD_READ  0x0002
+#define DDR_CMD_DEBUG 0x00ff
 
 //-----------------------------------------------------------------------------
 enum PROG_MODE {
