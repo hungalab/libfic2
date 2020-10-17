@@ -42,6 +42,12 @@ static PyObject *py_fic_power(PyObject *self, PyObject *args) {
 }
 
 //-----------------------------------------------------------------------------
+static PyObject *py_comm_reset(PyObject *self, PyObject *args) {
+	fic_comm_reset();
+	return Py_BuildValue("");
+}
+
+//-----------------------------------------------------------------------------
 static PyObject *py_fic_prog_status(PyObject *self) {
 	return Py_BuildValue("iiillll",
 		PROG_ASYNC_STATUS.stat,
@@ -270,6 +276,54 @@ static PyObject *py_fic_hls_receive(PyObject *self, PyObject *args, PyObject *kw
 	PyObject *array = PyByteArray_FromStringAndSize(buf, size);
 	return array;
 }
+
+//-----------------------------------------------------------------------------
+static PyObject *py_fic_ddr_read(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint32_t addr;
+	size_t   size;
+
+	static char *kwd[] = {"size", "addr", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "II", kwd, &size, &addr)) {
+		return NULL;
+	}
+
+	uint8_t *buf = (uint8_t*) PyObject_Malloc(sizeof(uint8_t)*size);
+	if (!buf) {
+		return NULL;
+	}
+
+	int ret;
+	if ((ret = fic_hls_ddr_read(buf, size, addr)) < 0) {
+		return NULL;
+	}
+
+	PyObject *array = PyByteArray_FromStringAndSize(buf, size);
+	return array;
+}
+
+static PyObject *py_fic_ddr_write(PyObject *self, PyObject *args, PyObject *kwargs) {
+	uint32_t addr;
+	Py_buffer data;
+
+	static char *kwd[] = {"data", "addr", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*I", kwd, &data, &addr)) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	printf("len=%d addr=%d\n", data.len, addr);
+
+	int ret;
+	if ((ret = fic_hls_ddr_write(data.buf, data.len, addr)) < 0) {
+		PyBuffer_Release(&data);
+		return NULL;
+	}
+
+	PyBuffer_Release(&data);
+
+	return Py_BuildValue("");
+}
+
 //-----------------------------------------------------------------------------
 // Methods
 //-----------------------------------------------------------------------------
@@ -278,6 +332,7 @@ static PyMethodDef pyficlib2_methods[] = {
 	{ "gpio_close",	 (PyCFunction) py_fic_gpio_close, METH_VARARGS|METH_KEYWORDS, "Close GPIO and delete LOCK_FILE"},
 	{ "get_done",	 py_fic_done, METH_NOARGS, "Probe DONE singal from FPGA"},
 	{ "get_power",   py_fic_power, METH_NOARGS, "Probe PW_OK singal from FiC board"},
+	{ "comm_reset",    (PyCFunction) py_comm_reset, METH_NOARGS, "Reset IO module FSM"},
 	{ "prog_sm16",   (PyCFunction) py_fic_prog_sm16, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method"},
 	{ "prog_sm8",    (PyCFunction) py_fic_prog_sm8, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx8 method"},
 	{ "prog_sm16_fast",   (PyCFunction) py_fic_prog_sm16_fast, METH_VARARGS|METH_KEYWORDS, "Program FPGA by SMx16 method (Fast mode)"},
@@ -292,6 +347,8 @@ static PyMethodDef pyficlib2_methods[] = {
 	{ "hls_start",   (PyCFunction) py_fic_hls_start, METH_NOARGS, "Send Start CMD to HLS module"},
 	{ "hls_send",    (PyCFunction) py_fic_hls_send, METH_VARARGS|METH_KEYWORDS, "Send data to HLS module"},
 	{ "hls_receive", (PyCFunction) py_fic_hls_receive, METH_VARARGS|METH_KEYWORDS, "Receive data from HLS module"},
+	{ "ddr_write",   (PyCFunction) py_fic_ddr_write, METH_VARARGS|METH_KEYWORDS, "Write data to DDR module"},
+	{ "ddr_read",    (PyCFunction) py_fic_ddr_read, METH_VARARGS|METH_KEYWORDS, "Read data from DDR module"},
 	{ NULL, NULL, 0, NULL },	// Sentinel
 };
 

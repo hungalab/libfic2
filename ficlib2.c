@@ -377,6 +377,8 @@ static inline int fic_comm_receive_fast(uint32_t *rcv) {
     ret |= fic_comm_wait_fack_up_notimeout();
 
 #ifndef FICMK2
+    (GET_GPIO);
+    (GET_GPIO);
     *rcv = (GET_GPIO >> RP_DATA_LOW) & 0xf;
 #else
     // Note: mk2's 16bit I/F is unstable. so read it twice then check.
@@ -969,13 +971,17 @@ int fic_prog_init(enum PROG_MODE pm) {
     if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
 
     while (GET_GPIO_PIN(RP_INIT) == 0) {
-        usleep(1);
+        DEBUGOUT("[libfic2][DEBUG]: Awaiting FPGA reset...\n");
+        (GET_GPIO);
+        usleep(1000);
     }
 
     if (GET_GPIO_PIN(RP_DONE) == 1) {
         DEBUGOUT("[libfic2][DEBUG]: FPGA reset failed\n");
         return -1;
     }
+
+    DEBUGOUT("[libfic2][DEBUG]: FPGA reset success...\n");
 
     return 0;
 }

@@ -13,6 +13,8 @@ import argparse
 import time
 import pdb
 import pyficlib2 as Fic 
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 #------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
