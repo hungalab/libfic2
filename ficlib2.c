@@ -1086,17 +1086,24 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     uint32_t _d = 0;
     for (i = 0; i < size; i+=2) {
+        int ret = 0;
         uint32_t d = (data[i+1] << 8 | data[i]) << 8;
         if (d == _d) {
-            fic_clr_gpio(RP_PIN_CCLK);
-            SET_GPIO = RP_PIN_CCLK;
+            ret |= fic_clr_gpio_fast(RP_PIN_CCLK);
+            ret |= fic_set_gpio_fast(RP_PIN_CCLK);
+//            SET_GPIO = RP_PIN_CCLK;
 
         } else {
-            CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
-            SET_GPIO = d & 0x00ffff00;
-            SET_GPIO = (d & 0x00ffff00) | RP_PIN_CCLK;
+//            CLR_GPIO = (~d & 0x00ffff00) | RP_PIN_CCLK;
+//            SET_GPIO = d & 0x00ffff00;
+//            SET_GPIO = (d & 0x00ffff00) | RP_PIN_CCLK;
+            ret |= fic_clr_gpio((~d & 0x00ffff00) | RP_PIN_CCLK);
+            ret |= fic_set_gpio(d & 0x00ffff00);
+            ret |= fic_set_gpio((d & 0x00ffff00) | RP_PIN_CCLK);
 
         }
+
+        if (ret < 0) goto PM_SM16_EXIT_ERROR;
 
         _d = d;
 
