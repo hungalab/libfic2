@@ -24,8 +24,9 @@
 //#define SHOW_PROGRESS
 
 //-----------------------------------------------------------------------------
-#define GPIO_LOCK_TIMEOUT (30)      // Lockfile timeout
-#define COMM_TIMEOUT (10)           // Communication timeout 
+#define GPIO_LOCK_TIMEOUT (30)              // Lockfile timeout (seconds)
+#define COMM_TIMEOUT      (10)              // Communication timeout (seconds)
+#define COMM_TIMEOUT_NUM  (0x00ffffff)      // Communication timeout for while loop (times)
 
 #define GPIO_DEV "/dev/gpiomem"
 #define LOCK_FILE "/tmp/gpio.lock"

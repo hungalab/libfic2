@@ -311,8 +311,6 @@ static PyObject *py_fic_ddr_write(PyObject *self, PyObject *args, PyObject *kwar
 		return NULL;
 	}
 
-	printf("len=%d addr=%d\n", data.len, addr);
-
 	int ret;
 	if ((ret = fic_hls_ddr_write(data.buf, data.len, addr)) < 0) {
 		PyBuffer_Release(&data);
