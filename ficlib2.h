@@ -21,8 +21,13 @@
 //-----------------------------------------------------------------------------
 // Debug and Information messages
 //-----------------------------------------------------------------------------
-#define FIC_INFO  0
-#define FIC_DEBUG 0
+#ifndef FIC_INFO
+    #define FIC_INFO  0
+#endif
+
+#ifndef FIC_DEBUG
+    #define FIC_DEBUG 0
+#endif
 
 //-----------------------------------------------------------------------------
 // Board definition

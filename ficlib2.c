@@ -583,10 +583,10 @@ static inline int _fic_hls_send_bytes(uint8_t *data, size_t size) {
         ret |= fic_comm_send_fast((*(data+i) & 0x0f) << RP_DATA_LOW);         // 4bit low
 
         if (i > 0 && (i % (1024*1024)) == 0) {
-            PInfo("Send %d bytes", i);
+            PInfo("%s Send %d bytes",__FUNCTION__, i);
         }
     }
-    PInfo("Send %d bytes", i);
+    PInfo("%s Send %d bytes",__FUNCTION__, i);
 
 #else
     // For mk2 board
@@ -605,10 +605,10 @@ static inline int _fic_hls_send_bytes(uint8_t *data, size_t size) {
     for (i = 0; i < size; i+=2) {
         ret |= fic_comm_send_fast((*(data+i) | *(data+i+1) << 8) << RP_DATA_LOW);  // 8bit + 8bit
         if ((i % (1024*1024)) == 0) {
-            PInfo("Send %d bytes", i);
+            PInfo("%s Send %d bytes",__FUNCTION__, i);
         }
     }
-    PInfo("Send %d bytes", i);
+    PInfo("%s Send %d bytes",__FUNCTION__, i);
 
 #endif
 
@@ -661,11 +661,11 @@ static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
         *(data+i) = ((rvh << 4) | rvl) & 0xff;
 
         if (i > 0 && (i % (1024*1024)) == 0) {
-            PInfo("Receive %d bytes", i);
+            PInfo("%s Received %d bytes",__FUNCTION__, i);
         }
     }
     
-    PInfo("Received %d bytes", i);
+    PInfo("%s Received %d bytes",__FUNCTION__, i);
 
 #else
     // for mk2 
@@ -694,11 +694,11 @@ static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
 
 
         if ((i % (1024*1024)) == 0) {
-            PInfo("Receive %d bytes", i);
+            PInfo("%s Received %d bytes",__FUNCTION__, i);
         }
     }
 
-    PInfo("Received %d bytes", i);
+    PInfo("%s Received %d bytes",__FUNCTION__, i);
 
 #endif
 
