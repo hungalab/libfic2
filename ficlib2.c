@@ -18,11 +18,13 @@ struct _prog_async_status PROG_ASYNC_STATUS = {
 static inline int fic_set_gpio_fast(uint32_t set) {
     SET_GPIO = set;
     while ((GET_GPIO & set) ^ set) asm("nop");
+    return 0;
 }
 
 static inline int fic_clr_gpio_fast(uint32_t set) {
     CLR_GPIO = set;
     while (GET_GPIO & set) asm("nop");
+    return 0;
 }
 
 //-----------------------------------------------------------------------------

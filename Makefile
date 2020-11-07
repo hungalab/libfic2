@@ -1,6 +1,7 @@
 BIN=ficlib2
-#CC=gcc -O2 -g -lpthread
-CC=gcc -g -lpthread
+CC=gcc -O2 -g -lpthread
+#CC=gcc -g -lpthread
+#------------------------------------------------------------------------------
 
 mk1:
 #	make $(BIN)
@@ -21,6 +22,7 @@ mk2:
 # 	make $(BIN)
 # 	make pyficlib2.so
 
+#------------------------------------------------------------------------------
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
@@ -49,9 +51,6 @@ testddr: testddr.o ficlib2.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 testprog: testprog.o ficlib2.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-testvta: testvta.o ficlib2.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 #------------------------------------------------------------------------------
