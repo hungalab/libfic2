@@ -2,6 +2,9 @@
 // libfic2.h 
 // nyacom <kzh@nyacom.net> (C) 2018.09
 //-----------------------------------------------------------------------------
+#ifndef FICLIB2_H
+#define FICLIB2_H
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -14,6 +17,12 @@
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
+
+//-----------------------------------------------------------------------------
+// Debug and Information messages
+//-----------------------------------------------------------------------------
+#define FIC_INFO  0
+#define FIC_DEBUG 0
 
 //-----------------------------------------------------------------------------
 // Board definition
@@ -43,7 +52,7 @@
 // Always use INP_GPIO(x) before using OUT_GPIO(x) or SET_GPIO_ALT(x,y)
 //-----------------------------------------------------------------------------
 // I/O access
-volatile unsigned *gpio;
+extern volatile unsigned *gpio;
 
 // Change GPIO mode
 #define SET_INPUT(g) *(gpio+((g)/10)) &= ~(7<<(((g)%10)*3))
@@ -278,19 +287,29 @@ volatile unsigned *gpio;
 #endif
 
 //-----------------------------------------------------------------------------
-#define COMM_CMD_HLS_START 0x01
-#define COMM_CMD_HLS_RESET 0x04
-#define COMM_CMD_WRITE 0x02
-#define COMM_CMD_READ 0x03
+// Raspi IO module command
+//-----------------------------------------------------------------------------
+enum RASIO_CMD {
+    COMM_CMD_HLS_START = 0x01,
+    COMM_CMD_HLS_RESET = 0x04,
+    COMM_CMD_WRITE     = 0x02,
+    COMM_CMD_READ      = 0x03,
+};
 
 //-----------------------------------------------------------------------------
 #define COMM_ADDR_HLS 0x1000
 #define COMM_ADDR_ST  0xffff
 
 //-----------------------------------------------------------------------------
-#define DDR_CMD_WRITE 0x0001
-#define DDR_CMD_READ  0x0002
-#define DDR_CMD_DEBUG 0x00ff
+// Rasddr HLS module command
+//-----------------------------------------------------------------------------
+enum RASDDR_CMD {
+    RASDDR_CMD_WRITE     = 0x0001,
+    RASDDR_CMD_READ      = 0x0002,
+    RASDDR_CMD_AXI_WRITE = 0x0010,
+    RASDDR_CMD_AXI_READ  = 0x0020,
+    RASDDR_CMD_DEBUG     = 0x00ff,
+};
 
 //-----------------------------------------------------------------------------
 enum PROG_MODE {
@@ -333,17 +352,33 @@ typedef struct _prog_async_status {
 extern struct _prog_async_status PROG_ASYNC_STATUS;
 
 //-----------------------------------------------------------------------------
-#define __DEBUG__
+// Message Control
+//-----------------------------------------------------------------------------
+#define PErr(...) \
+    fprintf(stderr, "[libfic2 ERROR]: [%s:%d in %s]: ", \
+            __FILE__, __LINE__, __FUNCTION__); \
+    fprintf(stderr, __VA_ARGS__); \
+    puts("");
 
-#ifdef __DEBUG__
-#define DEBUGTHRU printf("DEBUGTHRU: %s:%d\n", __FILE__, __LINE__)
-#define DEBUGOUT printf
-#define DEBUGCOMM fic_comm_busdebug(__LINE__)
-
+#if FIC_INFO == 1
+    #define PInfo(...) \
+        printf("[libfic2 INFO] : ");\
+        printf(__VA_ARGS__); \
+        puts("");
 #else
-#define DEBUGOUT //
+    #define PInfo(...) //
 #endif
- 
+
+#if FIC_DEBUG == 1
+    #define DEBUGCOMM fic_comm_busdebug(__LINE__)
+    #define PDebug(...) \
+        printf("[libfic2 DEBUG]: [%s:%d in %s]: ", __FILE__, __LINE__, __FUNCTION__); \
+        printf(__VA_ARGS__); \
+        puts("");
+#else
+    #define PDebug(...) //
+#endif
+
 //-----------------------------------------------------------------------------
 // Prototypes
 //-----------------------------------------------------------------------------
@@ -361,8 +396,10 @@ extern int fic_read(uint16_t addr);
 extern int fic_hls_send(uint8_t *data, size_t size);
 extern int fic_hls_receive(uint8_t *buf, size_t size);
 
-extern int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr);            // Write to DDR module
-extern int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr);             // Read from DDR module
+extern int fic_hls_write(uint8_t *data, size_t size, uint32_t addr, enum RASDDR_CMD ctrl); // Write to DDR module
+extern int fic_hls_read(uint8_t *buf, size_t size,  uint32_t addr, enum RASDDR_CMD ctrl);  // Read from DDR module
+extern int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr);                   // Write to DDR module
+extern int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr);                    // Read from DDR module
 
 extern int fic_prog_init(enum PROG_MODE pm);
 extern size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm);         // Normal configuration mode
@@ -383,3 +420,5 @@ extern int fic_gpio_close(int fd_lock);
 
 extern int gpio_unlock();
 extern int gpio_lock();
+
+#endif // FICLIB2_H

@@ -1,5 +1,6 @@
 #include "ficlib2.h"
 
+volatile unsigned *gpio;
 //-----------------------------------------------------------------------------
 struct _prog_async_status PROG_ASYNC_STATUS = {
     .stat         = PM_STAT_INIT,
@@ -34,8 +35,7 @@ static inline int fic_set_gpio(uint32_t set) {
     while ((GET_GPIO & set) ^ set) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-            fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+            PErr("Communication timeout");
             return -1;
         }
         //usleep(1);
@@ -50,8 +50,7 @@ static inline int fic_clr_gpio(uint32_t set) {
     while (GET_GPIO & set) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-            fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+            PErr("Communication timeout");
             return -1;
         }
         //usleep(1);
@@ -64,32 +63,32 @@ static inline int fic_clr_gpio(uint32_t set) {
 // Use DEBUGCOM macro for debug
 //-----------------------------------------------------------------------------
 void fic_comm_busdebug(int line) {
-    printf("[libfic2][DEBUG]: L%d GPIO=%x ", line, GET_GPIO);
+    PDebug("L%d GPIO=%x ", line, GET_GPIO);
 
     if (GET_GPIO & RP_PIN_RREQ) {
-        printf("RREQ = 1 ");
+        PDebug("RREQ = 1 ");
     } else {
-        printf("RREQ = 0 ");
+        PDebug("RREQ = 0 ");
     }
 
     if (GET_GPIO & RP_PIN_FREQ) {
-        printf("FREQ = 1 ");
+        PDebug("FREQ = 1 ");
     } else {
-        printf("FREQ = 0 ");
+        PDebug("FREQ = 0 ");
     }
 
     if (GET_GPIO & RP_PIN_RSTB) {
-        printf("RSTB = 1 ");
+        PDebug("RSTB = 1 ");
     } else {
-        printf("RSTB = 0 ");
+        PDebug("RSTB = 0 ");
     }
 
     if (GET_GPIO & RP_PIN_FACK) {
-        printf("FACK = 1 ");
+        PDebug("FACK = 1 ");
     } else {
-        printf("FACK = 0 ");
+        PDebug("FACK = 0 ");
     }
-    printf("\n");
+    puts("");
 }
 
 //-----------------------------------------------------------------------------
@@ -124,12 +123,6 @@ inline int fic_comm_setup() {
             if (fic_clr_gpio(0x01 << i) < 0) return -1;  // Negate
         }
     }
-
-//#ifdef FICMK2
-//    //SET_OUTPUT(RP_CFSEL);
-//    //if (fic_clr_gpio(RP_PIN_CFSEL) < 0) return -1;  // Clear CFG mode
-//    //printf("INFO: RP_CFSEL is clr for FiC Mark2 board\n");
-//#endif
 
     return 0;
 }
@@ -174,8 +167,7 @@ static inline int fic_comm_wait_fack_down() {
     while (GET_GPIO_PIN(RP_FACK) == 1) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+          PErr("Communication timeout");
           return -1;
         }
     }
@@ -203,8 +195,7 @@ static inline int fic_comm_wait_fack_up() {
     while (GET_GPIO_PIN(RP_FACK) == 0) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+          PErr("Communication timeout");
           return -1;
         }
     }
@@ -231,8 +222,7 @@ static inline int fic_comm_wait_freq_down() {
     while (GET_GPIO_PIN(RP_FREQ) == 1) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+          PErr("Communication timeout");
           return -1;
         }
     }
@@ -260,8 +250,7 @@ static inline int fic_comm_wait_freq_up() {
     while (GET_GPIO_PIN(RP_FREQ) == 0) {
         time(&t2);
         if (t2 - t1 > COMM_TIMEOUT) {
-          fprintf(stderr, "[libfic2][ERROR]: Communication timeout at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+          PErr("Communication timeout");
           return -1;
         }
     }
@@ -306,8 +295,7 @@ static inline int fic_comm_send(uint32_t bus) {
     }
 
     if (fic_comm_wait_fack_up() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_wait_fack_up failed");
         return -1;
     }
 
@@ -316,8 +304,7 @@ static inline int fic_comm_send(uint32_t bus) {
     }
 
     if (fic_comm_wait_fack_down() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_wait_fack_down failed");
         return -1;
     }
 
@@ -357,8 +344,7 @@ static inline int fic_comm_receive() {
     if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
 
     if (fic_comm_wait_fack_up() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_wait_fack_up failed");
         return -1;
     }
 
@@ -373,8 +359,7 @@ static inline int fic_comm_receive() {
     if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
 
     if (fic_comm_wait_fack_down() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
-                  __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_wait_fack_down failed");
         return -1;
     }
 
@@ -416,7 +401,7 @@ static inline int fic_comm_receive_fast(uint32_t *rcv) {
 //    if (fic_set_gpio(RP_PIN_RSTB) < 0) return -1;
 //
 //    if (fic_comm_wait_fack_up() < 0) {
-//        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d\n",
+//        PErr\( "[libfic2][ERROR]: fic_comm_wait_fack_up failed at %s %s %d",
 //                  __FILE__, __FUNCTION__, __LINE__);
 //        return -1;
 //    }
@@ -430,7 +415,7 @@ static inline int fic_comm_receive_fast(uint32_t *rcv) {
 //    if (fic_clr_gpio(RP_PIN_RSTB) < 0) return -1;
 //
 //    if (fic_comm_wait_fack_down() < 0) {
-//        fprintf(stderr, "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d\n",
+//        PErr\( "[libfic2][ERROR]: fic_comm_wait_fack_down failed at %s %s %d",
 //                  __FILE__, __FUNCTION__, __LINE__);
 //        return -1;
 //    }
@@ -550,21 +535,21 @@ inline int fic_read(uint16_t addr) {
 // Transfer bytes via 4bit interface
 // Modify 2019.11.30: Make the function send each 1B on *buf via 4bit interface
 //-----------------------------------------------------------------------------
-static inline int _fic_hls_comm_initiate(int cmd) {
+static inline int _fic_hls_comm_initiate(enum RASIO_CMD cmd) {
     if (fic_comm_setup() < 0) return -1;
     fic_comm_portdir(COMM_PORT_SND);
 
     // RREQ assert
-//    DEBUGOUT("DEBUG: RREQ assert\n");
+//    PDebug("DEBUG: RREQ assert");
     if (fic_set_gpio(RP_PIN_RREQ) < 0) return -1;
 //    if (fic_comm_wait_freq_up() < 0) return -1;
 
     // Send command
-//    DEBUGOUT("DEBUG: Send command\n");
+//    PDebug("DEBUG: Send command");
     if (fic_comm_send(cmd << RP_DATA_LOW) < 0) return -1;
 
     // Set address at HLS module entry point 0x1000
-//    DEBUGOUT("DEBUG: Send addr\n");
+//    PDebug("DEBUG: Send addr");
     if (fic_comm_setaddr(COMM_ADDR_HLS) < 0) return -1;
 
     // Change port direction if cmd is READ
@@ -598,39 +583,37 @@ static inline int _fic_hls_send_bytes(uint8_t *data, size_t size) {
         ret |= fic_comm_send_fast((*(data+i) & 0x0f) << RP_DATA_LOW);         // 4bit low
 
         if (i > 0 && (i % (1024*1024)) == 0) {
-            printf("INFO %s(): Send %d bytes\n", __FUNCTION__, i);
+            PInfo("Send %d bytes", i);
         }
     }
-    printf("INFO %s(): Send %d bytes\n", __FUNCTION__, i);
+    PInfo("Send %d bytes", i);
 
 #else
     // For mk2 board
     // Transfer 2B data each time
 
     if (size < 2) {
-        fprintf(stderr, "[libfic2][ERROR]: %d is too small (size should more than 2 byte at %s %s %d\n",
-                size, __FILE__, __FUNCTION__, __LINE__);
+        PErr("%d is too small (size should more than 2 byte", size);
         return -1;
     }
 
     if (size % 2 != 0) {
-        fprintf(stderr, "[libfic2][ERROR]: %d is not 2B aligned size. at %s %s %d\n",
-                size, __FILE__, __FUNCTION__, __LINE__);
+        PErr("%d is not 2B aligned size", size);
         return -1;
     }
 
     for (i = 0; i < size; i+=2) {
         ret |= fic_comm_send_fast((*(data+i) | *(data+i+1) << 8) << RP_DATA_LOW);  // 8bit + 8bit
         if ((i % (1024*1024)) == 0) {
-            printf("INFO %s(): Send %d bytes\n", __FUNCTION__, i);
+            PInfo("Send %d bytes", i);
         }
     }
+    PInfo("Send %d bytes", i);
 
 #endif
 
     if (ret < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_send_bytes failed at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_send_bytes failed");
         return -1;
     }
 
@@ -678,24 +661,23 @@ static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
         *(data+i) = ((rvh << 4) | rvl) & 0xff;
 
         if (i > 0 && (i % (1024*1024)) == 0) {
-            printf("INFO %s(): Receive %d bytes\n", __FUNCTION__, i);
+            PInfo("Receive %d bytes", i);
         }
     }
-    printf("INFO %s(): Receive %d bytes\n", __FUNCTION__, i);
+    
+    PInfo("Received %d bytes", i);
 
 #else
     // for mk2 
     // mk2 has 16bit word width = 2bytes at once
 
     if (size < 2) {
-        fprintf(stderr, "[libfic2][ERROR]: %d is too small (size should more than 2 byte at %s %s %d\n",
-                size, __FILE__, __FUNCTION__, __LINE__);
+        PErr("%d is too small (size should more than 2 byte", size);
         return -1;
     }
 
     if (size % 2 != 0) {
-        fprintf(stderr, "[libfic2][ERROR]: %d is must be 2B aligned size. at %s %s %d\n",
-                size, __FILE__, __FUNCTION__, __LINE__);
+        PErr("%d is must be 2B aligned size", size);
         return -1;
     }
 
@@ -710,19 +692,18 @@ static inline int _fic_hls_receive_bytes(uint8_t *data, size_t size) {
         *(data+i)   = (rv & 0x00ff) >> 0;
         *(data+i+1) = (rv & 0xff00) >> 8;
 
-        //printf("%d: %x ", __LINE__, rv);
-
 
         if ((i % (1024*1024)) == 0) {
-            printf("INFO %s(): Receive %d bytes\n", __FUNCTION__, i);
+            PInfo("Receive %d bytes", i);
         }
     }
+
+    PInfo("Received %d bytes", i);
 
 #endif
 
     if (ret < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: fic_comm_receive_bytes failed at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("fic_comm_receive_bytes failed");
         return -1;
     }
 
@@ -745,83 +726,79 @@ inline int fic_hls_receive(uint8_t *buf, size_t size) {
 //-----------------------------------------------------------------------------
 // Write data to DDR module (rasddr) via RPI 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr) {
+int fic_hls_write(uint8_t *data, size_t size, uint32_t addr, enum RASDDR_CMD ctrl) {
     uint32_t cmd[3];
 
-    cmd[0] = DDR_CMD_WRITE;
+    cmd[0] = ctrl;
     cmd[1] = addr;
     cmd[2] = size;
 
-    printf("DEBUG: addr = %08x, size = %d\n", addr, size);
+    PDebug("addr = %08x, size = %d", addr, size);
 
     // Initiate communication port
     if (_fic_hls_comm_initiate(COMM_CMD_WRITE) < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Send cmd
     if (_fic_hls_send_bytes((uint8_t *)&cmd, 12) < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Send data
     if (_fic_hls_send_bytes(data, size) < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Terminate communication port
     if (_fic_hls_comm_terminate() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     return 0;
 }
 
+int fic_hls_ddr_write(uint8_t *data, size_t size, uint32_t addr) {
+    return fic_hls_write(data, size, addr, RASDDR_CMD_WRITE);
+}
+
 //-----------------------------------------------------------------------------
 // Receive bytes via 4bit interface
 //-----------------------------------------------------------------------------
-int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr) {
+int fic_hls_read(uint8_t *buf, size_t size, uint32_t addr, enum RASDDR_CMD ctrl) {
     uint32_t cmd[3];
 
-    cmd[0] = DDR_CMD_READ;
+    cmd[0] = ctrl;
     cmd[1] = addr;
     cmd[2] = size;
 
-    printf("DEBUG: addr = %08x, size = %d\n", addr, size);
+    PDebug("DEBUG: addr = %08x, size = %d", addr, size);
 
     // Send cmd to DDR module
     if (fic_hls_send((uint8_t *)&cmd, 12) < 0) {  // cmd
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Initiate communication port
     if (_fic_hls_comm_initiate(COMM_CMD_READ) < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Receive bytes from DDR module
     if (_fic_hls_receive_bytes(buf, size) < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
     // Terminate communication port
     if (_fic_hls_comm_terminate() < 0) {
-        fprintf(stderr, "[libfic2][ERROR]: Communication error %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("Communication error");
         return -1;
     }
 
@@ -831,6 +808,10 @@ int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr) {
     return 0;
 }
 
+int fic_hls_ddr_read(uint8_t *buf, size_t size,  uint32_t addr) {
+    return fic_hls_read(buf, size, addr, RASDDR_CMD_READ);
+}
+
 //-----------------------------------------------------------------------------
 // Receive bytes via 4bit interface
 //-----------------------------------------------------------------------------
@@ -838,7 +819,7 @@ int fic_hls_ddr_debug(uint8_t *buf, size_t size, uint32_t addr) {
     int ret = 0;
     uint32_t cmd[3];
 
-    cmd[0] = DDR_CMD_DEBUG;
+    cmd[0] = RASDDR_CMD_DEBUG;
     cmd[1] = addr;
     cmd[2] = size;
 
@@ -902,7 +883,7 @@ int fic_prog_init_sm16() {
     // Set bus switch to FPGA configuration mode
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
-    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+    PDebug("RP_CFSEL is set for FiC Mark2 board");
 #endif
 
     return 0;
@@ -957,7 +938,7 @@ int fic_prog_init_sm8() {
     // Set bus switch to FPGA configuration mode
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
-    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+    PDebug("RP_CFSEL is set for FiC Mark2 board");
 #endif
 
     return 0;
@@ -971,7 +952,7 @@ int fic_prog_init(enum PROG_MODE pm) {
 #ifdef FICMK2
     SET_OUTPUT(RP_CFSEL);
     if (fic_set_gpio(RP_PIN_CFSEL) < 0) return -1;  // Set CFG mode
-    printf("INFO: RP_CFSEL is set for FiC Mark2 board\n");
+    PDebug("RP_CFSEL is set for FiC Mark2 board");
 #endif
 
     // Pin setup for FPGA Init
@@ -994,17 +975,17 @@ int fic_prog_init(enum PROG_MODE pm) {
     if (fic_set_gpio(RP_PIN_PROG_B) < 0) return -1;
 
     while (GET_GPIO_PIN(RP_INIT) == 0) {
-        DEBUGOUT("[libfic2][DEBUG]: Awaiting FPGA reset...\n");
+        PDebug("Awaiting FPGA reset...");
         (GET_GPIO);
         usleep(1000);
     }
 
     if (GET_GPIO_PIN(RP_DONE) == 1) {
-        DEBUGOUT("[libfic2][DEBUG]: FPGA reset failed\n");
+        PDebug("FPGA reset failed");
         return -1;
     }
 
-    DEBUGOUT("[libfic2][DEBUG]: FPGA reset success...\n");
+    PDebug("FPGA reset success...");
 
     return 0;
 }
@@ -1135,34 +1116,30 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
-            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            PInfo("Transfer %d / %d [%.02f %%]", i, size, (i/(float)size)*100);
             t1 = t2;
         }
 
         if (GET_GPIO_PIN(RP_INIT) == 0) {
-            fprintf(stderr,
-                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                    __FILE__, __FUNCTION__, __LINE__);
+            PErr("FPGA configuration failed");
             goto PM_SM16_EXIT_ERROR;
         }
     }
 
     // Wait until RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        PDebug("Waiting for RP_DONE");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
-                fprintf(stderr,
-                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                        __FILE__, __FUNCTION__, __LINE__);
+                PErr("FPGA configuration failed");
                 goto PM_SM16_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
         }
-        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        PDebug("RP_DONE");
         if (fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
     }
 
@@ -1247,7 +1224,7 @@ size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
-            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            PInfo("Transfer %d / %d [%.02f %%]", i, size, (i/(float)size)*100);
             t1 = t2;
         }
 #endif
@@ -1256,28 +1233,24 @@ size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // If something happen during send configuration
     if (GET_GPIO_PIN(RP_INIT) == 0) {
-        fprintf(stderr,
-                "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("FPGA configuration failed");
         goto PM_SM16_EXIT_ERROR;
     }
 
     // Wait until RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        PDebug("Waiting for RP_DONE");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
-                fprintf(stderr,
-                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                        __FILE__, __FUNCTION__, __LINE__);
+                PErr("FPGA configuration failed");
                 goto PM_SM16_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
         }
-        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        PDebug("[libfic2][DEBUG]: RP_DONE");
         if (fic_clr_gpio(0x00ffff00 | RP_PIN_CCLK) < 0) goto PM_SM16_EXIT_ERROR;
     }
 
@@ -1372,37 +1345,30 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
-            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            PInfo("Transfer %d / %d [%.02f %%]", i, size, (i/(float)size)*100);
             t1 = t2;
         }
 
-//        usleep(1000);
-//        printf("GPIO=%08x\n", GET_GPIO);
-
         if (GET_GPIO_PIN(RP_INIT) == 0) {
-            fprintf(stderr,
-                    "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                    __FILE__, __FUNCTION__, __LINE__);
+            PErr("FPGA configuration failed");
             goto PM_SM8_EXIT_ERROR;
         }
     }
 
     // Waitng RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        PDebug("Waiting for RP_DONE");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
-                fprintf(stderr,
-                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                        __FILE__, __FUNCTION__, __LINE__);
+                PErr("FPGA configuration failed");
                 goto PM_SM8_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
         }
-        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        PDebug("RP_DONE");
         if (fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     }
 
@@ -1492,7 +1458,7 @@ size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
         // Show progress
         time(&t2);
         if (t2 - t1 > 2) {
-            printf("Transfer %d / %d [%.02f %%]\n", i, size, (i/(float)size)*100);
+            PInfo("Transfer %d / %d [%.02f %%]", i, size, (i/(float)size)*100);
             t1 = t2;
         }
 #endif
@@ -1501,28 +1467,24 @@ size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // If something happen during send configuration
     if (GET_GPIO_PIN(RP_INIT) == 0) {
-        fprintf(stderr,
-                "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                __FILE__, __FUNCTION__, __LINE__);
+        PErr("FPGA configuration failed");
         goto PM_SM8_EXIT_ERROR;
     }
 
     // Waitng RP_DONE asserted
     if (pm == PM_NORMAL) {
-        DEBUGOUT("[libfic2][DEBUG]: Waiting for RP_DONE\n");
+        PDebug("Waiting for RP_DONE");
         time(&t1);
         while (GET_GPIO_PIN(RP_DONE) == 0) {
             time(&t2);
             if (GET_GPIO_PIN(RP_INIT) == 0 || t2 - t1 > COMM_TIMEOUT) {
-                fprintf(stderr,
-                        "[libfic2][ERROR]: FPGA configuration failed at %s %s %d\n",
-                        __FILE__, __FUNCTION__, __LINE__);
+                PErr("FPGA configuration failed");
                 goto PM_SM8_EXIT_ERROR;
             }
             if (fic_set_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
             if (fic_clr_gpio(RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
         }
-        DEBUGOUT("[libfic2][DEBUG]: RP_DONE\n");
+        PDebug("RP_DONE");
         if (fic_clr_gpio(0x0000ff00 | RP_PIN_CCLK) < 0) goto PM_SM8_EXIT_ERROR;
     }
 
@@ -1590,7 +1552,7 @@ int fic_hls_reset() {
 // Create LOCK_FILE
 //-----------------------------------------------------------------------------
 int gpio_lock() {
-    printf("[libfic2][DEBUG]: Obtaining GPIO lock...\n");
+    PDebug("Obtaining GPIO lock...");
 
     // Check LOCKFILE
     time_t t1, t2;
@@ -1599,10 +1561,10 @@ int gpio_lock() {
     struct stat st;
     while (stat(LOCK_FILE, &st) == 0) {
         sleep(1);
-        printf("[libfic2][DEBUG]: Attempting obtaining GPIO lock...\n");
+        PDebug("Attempting obtaining GPIO lock...");
         time(&t2);
         if ((t2 - t1) > GPIO_LOCK_TIMEOUT) {
-            fprintf(stderr, "[libfic2][ERROR]: GPIO lock timeout\n");
+            PErr("GPIO lock timeout");
             return -1;
         }
     }
@@ -1610,13 +1572,13 @@ int gpio_lock() {
     // Create LOCKFILE
     int lock_fd = open(LOCK_FILE, O_CREAT|O_RDONLY, 0666);
     if (lock_fd < 0) {
-		fprintf(stderr, "[libfic2][ERROR]: Cant create LOCK_FILE\n");
+		PErr("Cant create LOCK_FILE");
         return -1;
     }
 
     // flock LOCKFILE
     if (flock(lock_fd, LOCK_EX) < 0) {
-		fprintf(stderr, "[libfic2][ERROR]: Cant lock LOCK_FILE\n");
+		PErr("Cant lock LOCK_FILE");
         return -1;
     }
 
@@ -1629,7 +1591,7 @@ int gpio_lock() {
 int gpio_unlock(int fd_lock) {
     close(fd_lock);                 // Close lockfile fd
     if (unlink(LOCK_FILE) < 0 ) {   // Delete lockfile
-		fprintf(stderr, "[libfic2][ERROR]: Cant remove LOCK_FILE\n");
+		PErr("Cant remove LOCK_FILE");
         return -1;
     }
 
@@ -1642,14 +1604,14 @@ int gpio_unlock(int fd_lock) {
 int fic_gpio_open() {
     int fd_lock = gpio_lock();
     if (fd_lock < 0) {
-		fprintf(stderr, "[libfic2][ERROR]: GPIO open failed\n");
+		PErr("GPIO open failed");
         return -1;
     }
 
 	/* open GPIO_DEV */
     int mem_fd = open(GPIO_DEV, O_RDWR|O_SYNC);
 	if (mem_fd < 0) {
-		fprintf(stderr, "[libfic2][ERROR]: can't open %s \n", GPIO_DEV);
+		PErr("can't open %s", GPIO_DEV);
         return -1;
 	}
 
@@ -1667,7 +1629,7 @@ int fic_gpio_open() {
     close(mem_fd); //No need to keep mem_fd open after mmap
 
 	if (gpio_map == MAP_FAILED) {
-		fprintf(stderr, "[libfic2][ERROR]: mmap error %d\n", (int)gpio_map);//errno also set!
+		PErr("mmap error %d", (int)gpio_map);   //errno also set!
         return -1;
 	}
 
