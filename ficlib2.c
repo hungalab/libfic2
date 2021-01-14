@@ -2,7 +2,7 @@
 
 volatile unsigned *gpio;
 //-----------------------------------------------------------------------------
-struct _prog_async_status PROG_ASYNC_STATUS = {
+struct _prog_stat PROG_STAT = {
     .stat         = PM_STAT_INIT,
     .smap_mode    = PM_SMAP_8,
     .prog_mode    = PM_NORMAL,
@@ -1037,27 +1037,27 @@ static inline void _toggle_cclk4() {
 // Selectmap x16 FPGA configuration 
 //-----------------------------------------------------------------------------
 void _fic_prog_sm16_async_wrap(void) {
-    fic_prog_sm16(PROG_ASYNC_STATUS.prog_data, 
-                PROG_ASYNC_STATUS.prog_size,
-                PROG_ASYNC_STATUS.prog_mode);
+    fic_prog_sm16(PROG_STAT.prog_data, 
+                PROG_STAT.prog_size,
+                PROG_STAT.prog_mode);
 
-    free(PROG_ASYNC_STATUS.prog_data);
-    PROG_ASYNC_STATUS.prog_data = NULL;
+    free(PROG_STAT.prog_data);
+    PROG_STAT.prog_data = NULL;
 }
 
 int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
     uint8_t *buf = malloc(sizeof(uint8_t)*size);
     if (buf == NULL) {
-        PROG_ASYNC_STATUS.stat = PM_STAT_FAIL;
+        PROG_STAT.stat = PM_STAT_FAIL;
         return -1;
     }
     memcpy(buf, data, size);
-    PROG_ASYNC_STATUS.prog_data = buf;
-    PROG_ASYNC_STATUS.prog_size = size;
-    PROG_ASYNC_STATUS.prog_mode = pm;
+    PROG_STAT.prog_data = buf;
+    PROG_STAT.prog_size = size;
+    PROG_STAT.prog_mode = pm;
 
     int ret;
-    ret = pthread_create(&PROG_ASYNC_STATUS.prog_th, NULL,
+    ret = pthread_create(&PROG_STAT.prog_th, NULL,
                          (void *)_fic_prog_sm16_async_wrap, NULL);
 
     if (ret != 0) {
@@ -1071,12 +1071,12 @@ int fic_prog_sm16_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
 size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
-    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
-    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
-    PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
-    PROG_ASYNC_STATUS.prog_size    = size;
-    PROG_ASYNC_STATUS.tx_size      = 0;
+    PROG_STAT.stat         = PM_STAT_PROG;
+    PROG_STAT.smap_mode    = PM_SMAP_16;
+    PROG_STAT.prog_mode    = pm;
+    PROG_STAT.prog_st_time = clock();
+    PROG_STAT.prog_size    = size;
+    PROG_STAT.tx_size      = 0;
 
     if (fic_prog_init_sm16() < 0) goto PM_SM16_EXIT_ERROR; // Set pinmode
 
@@ -1113,7 +1113,7 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
         _d = d;
 
-        PROG_ASYNC_STATUS.tx_size += 2;
+        PROG_STAT.tx_size += 2;
 
         // Show progress
         time(&t2);
@@ -1146,15 +1146,15 @@ size_t fic_prog_sm16(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_DONE;
+    PROG_STAT.prog_ed_time = clock();
 
     return i;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_FAIL;
+    PROG_STAT.prog_ed_time = clock();
 
     return 0;
 }
@@ -1163,12 +1163,12 @@ PM_SM16_EXIT_ERROR:
 size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
-    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
-    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_16;
-    PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = clock();
-    PROG_ASYNC_STATUS.prog_size    = size;
-    PROG_ASYNC_STATUS.tx_size      = 0;
+    PROG_STAT.stat         = PM_STAT_PROG;
+    PROG_STAT.smap_mode    = PM_SMAP_16;
+    PROG_STAT.prog_mode    = pm;
+    PROG_STAT.prog_st_time = clock();
+    PROG_STAT.prog_size    = size;
+    PROG_STAT.tx_size      = 0;
 
     if (fic_prog_init_sm16() < 0) goto PM_SM16_EXIT_ERROR; // Set pinmode
 
@@ -1220,7 +1220,7 @@ size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
         _d_hi = d_hi;
         _d_low = d_low;
 
-        PROG_ASYNC_STATUS.tx_size += 2;
+        PROG_STAT.tx_size += 2;
 
 #ifdef SHOW_PROGRESS
         // Show progress
@@ -1257,15 +1257,15 @@ size_t fic_prog_sm16_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_DONE;
+    PROG_STAT.prog_ed_time = clock();
 
     return i;
 
 PM_SM16_EXIT_ERROR:
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_FAIL;
+    PROG_STAT.prog_ed_time = clock();
 
     return 0;
 }
@@ -1274,27 +1274,27 @@ PM_SM16_EXIT_ERROR:
 // Selectmap x8 FPGA configuration 
 //-----------------------------------------------------------------------------
 void _fic_prog_sm8_async_wrap(void) {
-    fic_prog_sm8(PROG_ASYNC_STATUS.prog_data, 
-                PROG_ASYNC_STATUS.prog_size,
-                PROG_ASYNC_STATUS.prog_mode);
+    fic_prog_sm8(PROG_STAT.prog_data, 
+                PROG_STAT.prog_size,
+                PROG_STAT.prog_mode);
 
-    free(PROG_ASYNC_STATUS.prog_data);
-    PROG_ASYNC_STATUS.prog_data = NULL;
+    free(PROG_STAT.prog_data);
+    PROG_STAT.prog_data = NULL;
 }
 
 int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
     uint8_t *buf = malloc(sizeof(uint8_t)*size);
     if (buf == NULL) {
-        PROG_ASYNC_STATUS.stat = PM_STAT_FAIL;
+        PROG_STAT.stat = PM_STAT_FAIL;
         return -1;
     }
     memcpy(buf, data, size);
-    PROG_ASYNC_STATUS.prog_data = buf;
-    PROG_ASYNC_STATUS.prog_size = size;
-    PROG_ASYNC_STATUS.prog_mode = pm;
+    PROG_STAT.prog_data = buf;
+    PROG_STAT.prog_size = size;
+    PROG_STAT.prog_mode = pm;
 
     int ret;
-    ret = pthread_create(&PROG_ASYNC_STATUS.prog_th, NULL,
+    ret = pthread_create(&PROG_STAT.prog_th, NULL,
                          (void *)_fic_prog_sm8_async_wrap, NULL);
 
     if (ret != 0) {
@@ -1308,12 +1308,12 @@ int fic_prog_sm8_async(uint8_t *data, size_t size, enum PROG_MODE pm) {
 size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
-    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
-    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
-    PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = time(NULL);
-    PROG_ASYNC_STATUS.prog_size    = size;
-    PROG_ASYNC_STATUS.tx_size      = 0;
+    PROG_STAT.stat         = PM_STAT_PROG;
+    PROG_STAT.smap_mode    = PM_SMAP_8;
+    PROG_STAT.prog_mode    = pm;
+    PROG_STAT.prog_st_time = clock();
+    PROG_STAT.prog_size    = size;
+    PROG_STAT.tx_size      = 0;
 
     if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
 
@@ -1342,7 +1342,7 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
         _d = d;
 
-        PROG_ASYNC_STATUS.tx_size++;
+        PROG_STAT.tx_size++;
 
         // Show progress
         time(&t2);
@@ -1375,15 +1375,15 @@ size_t fic_prog_sm8(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_DONE;
+    PROG_STAT.prog_ed_time = clock();
 
     return i;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_FAIL;
+    PROG_STAT.prog_ed_time = clock();
 
     return 0;
 }
@@ -1392,12 +1392,12 @@ PM_SM8_EXIT_ERROR:
 size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
     // For profiler metrics
-    PROG_ASYNC_STATUS.stat         = PM_STAT_PROG;
-    PROG_ASYNC_STATUS.smap_mode    = PM_SMAP_8;
-    PROG_ASYNC_STATUS.prog_mode    = pm;
-    PROG_ASYNC_STATUS.prog_st_time = clock();
-    PROG_ASYNC_STATUS.prog_size    = size;
-    PROG_ASYNC_STATUS.tx_size      = 0;
+    PROG_STAT.stat         = PM_STAT_PROG;
+    PROG_STAT.smap_mode    = PM_SMAP_8;
+    PROG_STAT.prog_mode    = pm;
+    PROG_STAT.prog_st_time = clock();
+    PROG_STAT.prog_size    = size;
+    PROG_STAT.tx_size      = 0;
 
     if (fic_prog_init_sm8() < 0) goto PM_SM8_EXIT_ERROR;  // Set pinmode
 
@@ -1454,7 +1454,7 @@ size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
 
         _d = d;
 
-        PROG_ASYNC_STATUS.tx_size++;
+        PROG_STAT.tx_size++;
 
 #ifdef SHOW_PROGRESS
         // Show progress
@@ -1491,15 +1491,15 @@ size_t fic_prog_sm8_fast(uint8_t *data, size_t size, enum PROG_MODE pm) {
     }
 
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_DONE;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_DONE;
+    PROG_STAT.prog_ed_time = clock();
 
     return i;
 
 PM_SM8_EXIT_ERROR:
     SET_ALL_INPUT;
-    PROG_ASYNC_STATUS.stat         = PM_STAT_FAIL;
-    PROG_ASYNC_STATUS.prog_ed_time = clock();
+    PROG_STAT.stat         = PM_STAT_FAIL;
+    PROG_STAT.prog_ed_time = clock();
 
     return 0;
 }

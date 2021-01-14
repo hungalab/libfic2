@@ -341,7 +341,7 @@ enum PROG_STATUS {
 
 
 //-----------------------------------------------------------------------------
-typedef struct _prog_async_status {
+typedef struct _prog_stat {
     pthread_t prog_th;
 
     enum PROG_STATUS    stat;           // Configuration status
@@ -354,7 +354,7 @@ typedef struct _prog_async_status {
     size_t              tx_size;        // Transfered size
 } prog_async_status;
 
-extern struct _prog_async_status PROG_ASYNC_STATUS;
+extern struct _prog_stat PROG_STAT;
 
 //-----------------------------------------------------------------------------
 // Message Control

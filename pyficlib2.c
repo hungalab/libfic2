@@ -50,13 +50,13 @@ static PyObject *py_comm_reset(PyObject *self, PyObject *args) {
 //-----------------------------------------------------------------------------
 static PyObject *py_fic_prog_status(PyObject *self) {
 	return Py_BuildValue("iiillll",
-		PROG_ASYNC_STATUS.stat,
-		PROG_ASYNC_STATUS.smap_mode,
-		PROG_ASYNC_STATUS.prog_mode,
-		PROG_ASYNC_STATUS.prog_st_time,
-		PROG_ASYNC_STATUS.prog_ed_time,
-		PROG_ASYNC_STATUS.prog_size,
-		PROG_ASYNC_STATUS.tx_size
+		PROG_STAT.stat,
+		PROG_STAT.smap_mode,
+		PROG_STAT.prog_mode,
+		PROG_STAT.prog_st_time,
+		PROG_STAT.prog_ed_time,
+		PROG_STAT.prog_size,
+		PROG_STAT.tx_size
 	);
 }
 
